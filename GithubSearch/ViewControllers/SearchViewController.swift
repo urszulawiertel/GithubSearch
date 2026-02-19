@@ -12,14 +12,25 @@ import RxCocoa
 
 final class SearchViewController: UIViewController {
 
+    let onRepoSelected = PublishRelay<Repo>()
+
     private let disposeBag = DisposeBag()
-    private let viewModel = SearchViewModel()
+    private let viewModel: SearchViewModel
 
     private let resultsTableView = UITableView(frame: .zero, style: .plain)
     fileprivate let activityIndicatorView = UIActivityIndicatorView(style: .medium)
     fileprivate let emptyStateLabel = UILabel()
 
     private let searchController = UISearchController(searchResultsController: nil)
+
+    init(viewModel: SearchViewModel) {
+        self.viewModel = viewModel
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -77,9 +88,10 @@ final class SearchViewController: UIViewController {
             .share(replay: 1)
 
         let searchTrigger = searchController.searchBar.rx.searchButtonClicked
-            .asObservable()
+            .asSignal()
 
-        let selectedRepo = resultsTableView.rx.modelSelected(Repo.self).asObservable()
+        let selectedRepo = resultsTableView.rx.modelSelected(Repo.self)
+            .asSignal(onErrorSignalWith: .empty())
 
         let input = SearchViewModel.Input(
             username: queryText.asObservable(),
@@ -99,7 +111,7 @@ final class SearchViewController: UIViewController {
             .disposed(by: disposeBag)
 
         output.errorMessage
-            .drive(rx.errorMessage)
+            .emit(to: rx.errorMessage)
             .disposed(by: disposeBag)
 
         // Table data
@@ -112,19 +124,16 @@ final class SearchViewController: UIViewController {
                 contentConfiguration.text = repo.name
                 contentConfiguration.secondaryText = repo.language
                 cell.contentConfiguration = contentConfiguration
-                cell.accessoryType = .disclosureIndicator
+                cell.accessoryType = UITableViewCell.AccessoryType.disclosureIndicator
             }
             .disposed(by: disposeBag)
 
-        resultsTableView.rx.modelSelected(Repo.self)
-            .subscribe(onNext: { [weak self] repo in
-                guard let self else { return }
-                let viewModel = RepoDetailsViewModel(repo: repo)
-                let detailsViewController = RepoDetailsViewController(viewModel: viewModel)
-                self.navigationController?.pushViewController(detailsViewController, animated: true)
-            })
+        // Navigation -> Details (single source of truth: output)
+        output.openRepoDetails
+            .emit(to: onRepoSelected)
             .disposed(by: disposeBag)
 
+        // UX: deselect row
         resultsTableView.rx.itemSelected
             .subscribe(onNext: { [weak self] indexPath in
                 self?.resultsTableView.deselectRow(at: indexPath, animated: true)
@@ -159,9 +168,8 @@ private extension Reactive where Base: SearchViewController {
         }
     }
 
-    var errorMessage: Binder<String?> {
+    var errorMessage: Binder<String> {
         Binder(base) { viewController, message in
-            guard let message else { return }
             viewController.showErrorAlert(message: message)
         }
     }

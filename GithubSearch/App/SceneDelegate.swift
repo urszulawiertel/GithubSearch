@@ -7,9 +7,10 @@
 
 import UIKit
 
-class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
+    private var appCoordinator: AppCoordinator?
 
     func scene(
         _ scene: UIScene,
@@ -19,13 +20,15 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         let window = UIWindow(windowScene: windowScene)
+        let navigationController = UINavigationController()
 
-        let rootVC = SearchViewController()
-        let nav = UINavigationController(rootViewController: rootVC)
+        let coordinator = AppCoordinator(navigationController: navigationController)
+        coordinator.start()
 
-        window.rootViewController = nav
+        window.rootViewController = navigationController
         window.makeKeyAndVisible()
 
         self.window = window
+        self.appCoordinator = coordinator
     }
 }
