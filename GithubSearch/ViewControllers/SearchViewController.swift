@@ -91,6 +91,7 @@ final class SearchViewController: UIViewController {
             .asSignal()
 
         let selectedRepo = resultsTableView.rx.modelSelected(Repo.self)
+            .throttle(.microseconds(500), scheduler: MainScheduler.instance)
             .asSignal(onErrorSignalWith: .empty())
 
         let input = SearchViewModel.Input(
@@ -168,8 +169,9 @@ private extension Reactive where Base: SearchViewController {
         }
     }
 
-    var errorMessage: Binder<String> {
+    var errorMessage: Binder<String?> {
         Binder(base) { viewController, message in
+            guard let message else { return }
             viewController.showErrorAlert(message: message)
         }
     }
