@@ -116,8 +116,13 @@ final class SearchViewController: UIViewController {
             }
             .disposed(by: disposeBag)
 
-        output.openRepoURL
-            .emit(onNext: { url in UIApplication.shared.open(url) })
+        resultsTableView.rx.modelSelected(Repo.self)
+            .subscribe(onNext: { [weak self] repo in
+                guard let self else { return }
+                let viewModel = RepoDetailsViewModel(repo: repo)
+                let detailsViewController = RepoDetailsViewController(viewModel: viewModel)
+                self.navigationController?.pushViewController(detailsViewController, animated: true)
+            })
             .disposed(by: disposeBag)
 
         resultsTableView.rx.itemSelected
