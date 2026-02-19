@@ -15,13 +15,19 @@ final class RepoDetailsViewModel {
         let openOnGitHubTapped: Signal<Void>
     }
 
+    struct State: Equatable {
+        let title: String
+        let subtitle: String
+        let descriptionText: String
+        let descriptionIsSecondary: Bool
+        let languageText: String
+        let languageIsSecondary: Bool
+        let starsText: String
+        let openButtonTitle: String
+    }
+
     struct Output {
-        let titleText: Driver<String>
-        let subtitleText: Driver<String>
-        let descriptionText: Driver<String?>
-        let languageText: Driver<String?>
-        let starsText: Driver<String>
-        let openOnGitHubTitle: Driver<String>
+        let state: Driver<State>
         let openRepoURL: Signal<URL>
     }
 
@@ -32,25 +38,22 @@ final class RepoDetailsViewModel {
     }
 
     func transform(input: Input) -> Output {
-        let titleText = Driver.just(repo.name)
-        let subtitleText = Driver.just(repo.fullName)
-
-        let descriptionText = Driver.just(repo.description)
-        let languageText = Driver.just(repo.language)
-
-        let starsText = Driver.just("★ \(repo.stargazersCount)")
-        let openOnGitHubTitle = Driver.just("Open on GitHub")
+        let state = State(
+            title: repo.name,
+            subtitle: repo.fullName,
+            descriptionText: repo.description ?? "No description",
+            descriptionIsSecondary: repo.description == nil,
+            languageText: repo.language ?? "—",
+            languageIsSecondary: repo.language == nil,
+            starsText: "★ \(repo.stargazersCount)",
+            openButtonTitle: "Open on GitHub"
+        )
 
         let openRepoURL = input.openOnGitHubTapped
             .map { [repo] in repo.htmlUrl }
 
         return Output(
-            titleText: titleText,
-            subtitleText: subtitleText,
-            descriptionText: descriptionText,
-            languageText: languageText,
-            starsText: starsText,
-            openOnGitHubTitle: openOnGitHubTitle,
+            state: Driver.just(state),
             openRepoURL: openRepoURL
         )
     }

@@ -21,17 +21,17 @@ final class RepoDetailsViewController: UIViewController {
     private let scrollView = UIScrollView()
     private let contentView = UIView()
 
-    private let titleLabel = UILabel()
-    private let subtitleLabel = UILabel()
-    private let descriptionLabel = UILabel()
+    fileprivate let titleLabel = UILabel()
+    fileprivate let subtitleLabel = UILabel()
+    fileprivate let descriptionLabel = UILabel()
 
-    private let languageTitleLabel = UILabel()
-    private let languageValueLabel = UILabel()
+    fileprivate let languageTitleLabel = UILabel()
+    fileprivate let languageValueLabel = UILabel()
 
     private let starsTitleLabel = UILabel()
-    private let starsValueLabel = UILabel()
+    fileprivate let starsValueLabel = UILabel()
 
-    private let openOnGitHubButton = UIButton(type: .system)
+    fileprivate let openOnGitHubButton = UIButton(type: .system)
 
     // MARK: - Init
 
@@ -171,38 +171,8 @@ final class RepoDetailsViewController: UIViewController {
 
         let output = viewModel.transform(input: input)
 
-        output.titleText
-            .drive(titleLabel.rx.text)
-            .disposed(by: disposeBag)
-
-        output.subtitleText
-            .drive(subtitleLabel.rx.text)
-            .disposed(by: disposeBag)
-
-        output.descriptionText
-            .drive(onNext: { [weak self] text in
-                guard let self else { return }
-                self.descriptionLabel.text = text ?? "No description"
-                self.descriptionLabel.textColor = (text == nil) ? .secondaryLabel : .label
-            })
-            .disposed(by: disposeBag)
-
-        output.languageText
-            .drive(onNext: { [weak self] language in
-                guard let self else { return }
-                self.languageValueLabel.text = language ?? "—"
-                self.languageValueLabel.textColor = (language == nil) ? .secondaryLabel : .label
-            })
-            .disposed(by: disposeBag)
-
-        output.starsText
-            .drive(starsValueLabel.rx.text)
-            .disposed(by: disposeBag)
-
-        output.openOnGitHubTitle
-            .drive(onNext: { [weak self] title in
-                self?.openOnGitHubButton.configuration?.title = title
-            })
+        output.state
+            .drive(rx.state)
             .disposed(by: disposeBag)
 
         output.openRepoURL
@@ -212,5 +182,26 @@ final class RepoDetailsViewController: UIViewController {
                 self.present(safariViewController, animated: true)
             })
             .disposed(by: disposeBag)
+    }
+}
+
+// MARK: - Rx Bindings
+private extension Reactive where Base: RepoDetailsViewController {
+
+    var state: Binder<RepoDetailsViewModel.State> {
+        Binder(base) { viewController, state in
+            viewController.titleLabel.text = state.title
+            viewController.subtitleLabel.text = state.subtitle
+
+            viewController.descriptionLabel.text = state.descriptionText
+            viewController.descriptionLabel.textColor = state.descriptionIsSecondary ? .secondaryLabel : .label
+
+            viewController.languageValueLabel.text = state.languageText
+            viewController.languageValueLabel.textColor = state.languageIsSecondary ? .secondaryLabel : .label
+
+            viewController.starsValueLabel.text = state.starsText
+
+            viewController.openOnGitHubButton.configuration?.title = state.openButtonTitle
+        }
     }
 }
