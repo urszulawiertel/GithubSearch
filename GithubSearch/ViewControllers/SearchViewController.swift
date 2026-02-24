@@ -82,42 +82,45 @@ final class SearchViewController: UIViewController {
     }
 
     private func setupBindings() {
-        let queryText = searchController.searchBar.rx.text.orEmpty
+        // Text
+        let queryTextObservable = searchController.searchBar.rx.text.orEmpty
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .distinctUntilChanged()
             .share(replay: 1)
 
-        let searchTrigger = searchController.searchBar.rx.searchButtonClicked
-            .asSignal()
+        // Trigger: Search button
+        let searchTapObservable = searchController.searchBar.rx.searchButtonClicked
+            .asObservable()
 
-        let selectedRepo = resultsTableView.rx.modelSelected(Repo.self)
-            .throttle(.microseconds(500), scheduler: MainScheduler.instance)
-            .asSignal(onErrorSignalWith: .empty())
+        // Selection (throttle optional)
+        let selectedRepoObservable = resultsTableView.rx.modelSelected(Repo.self)
+            .throttle(.milliseconds(500), scheduler: MainScheduler.instance)
+            .asObservable()
 
         let input = SearchViewModel.Input(
-            username: queryText.asObservable(),
-            searchTap: searchTrigger,
-            selectedRepo: selectedRepo
+            username: queryTextObservable,
+            searchTap: searchTapObservable,
+            selectedRepo: selectedRepoObservable
         )
 
         let output = viewModel.transform(input: input)
 
         // UI state
         output.isLoading
-            .drive(rx.isLoading)
+            .bind(to: rx.isLoading)
             .disposed(by: disposeBag)
 
         output.emptyMessage
-            .drive(rx.emptyMessage)
+            .bind(to: rx.emptyMessage)
             .disposed(by: disposeBag)
 
         output.errorMessage
-            .emit(to: rx.errorMessage)
+            .bind(to: rx.errorMessage)
             .disposed(by: disposeBag)
 
         // Table data
         output.repos
-            .drive(resultsTableView.rx.items(
+            .bind(to: resultsTableView.rx.items(
                 cellIdentifier: "RepoCell",
                 cellType: UITableViewCell.self
             )) { _, repo, cell in
@@ -131,7 +134,7 @@ final class SearchViewController: UIViewController {
 
         // Navigation -> Details (single source of truth: output)
         output.openRepoDetails
-            .emit(to: onRepoSelected)
+            .bind(to: onRepoSelected)
             .disposed(by: disposeBag)
 
         // UX: deselect row
@@ -169,9 +172,8 @@ private extension Reactive where Base: SearchViewController {
         }
     }
 
-    var errorMessage: Binder<String?> {
+    var errorMessage: Binder<String> {
         Binder(base) { viewController, message in
-            guard let message else { return }
             viewController.showErrorAlert(message: message)
         }
     }

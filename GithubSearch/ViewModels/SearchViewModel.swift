@@ -13,18 +13,17 @@ final class SearchViewModel {
 
     struct Input {
         let username: Observable<String>
-        let searchTap: Signal<Void>
-        let selectedRepo: Signal<Repo>
+        let searchTap: Observable<Void>
+        let selectedRepo: Observable<Repo>
     }
 
     struct Output {
-        let isSearchEnabled: Driver<Bool>
-        let isLoading: Driver<Bool>
-        let repos: Driver<[Repo]>
-        let errorMessage: Signal<String>
-        let emptyMessage: Driver<String?>
-        let openRepoURL: Signal<URL>
-        let openRepoDetails: Signal<Repo>
+        let isSearchEnabled: Observable<Bool>
+        let isLoading: Observable<Bool>
+        let repos: Observable<[Repo]>
+        let emptyMessage: Observable<String?>
+        let errorMessage: Observable<String>
+        let openRepoDetails: Observable<Repo>
     }
 
     private let service: GitHubServiceType
@@ -34,65 +33,47 @@ final class SearchViewModel {
     }
 
     func transform(input: Input) -> Output {
-
-        // 1) sanitize username
-        let usernameObservable = input.username
+        let username = input.username
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .distinctUntilChanged()
             .share(replay: 1)
 
-        let isSearchEnabled = usernameObservable
+        let isSearchEnabled = username
             .map { !$0.isEmpty }
-            .asDriver(onErrorJustReturn: false)
-
-        // 2) Convert username -> Signal so it can be used with Signal.withLatestFrom
-        let usernameSignal = usernameObservable
-            .asSignal(onErrorSignalWith: .empty())
+            .distinctUntilChanged()
 
         let activity = ActivityIndicator()
         let errorRelay = PublishRelay<String>()
 
-        // 3) search trigger (Signal) + latest username (Signal)
         let searchUsername = input.searchTap
-            .withLatestFrom(usernameSignal)
+            .withLatestFrom(username)
             .filter { !$0.isEmpty }
 
-        // 4) Repos stream
         let reposStream = searchUsername
             .flatMapLatest { [service] name in
                 service.fetchRepos(username: name)
                     .trackActivity(activity)
-                    .do(onError: { error in
+                    .asObservable()
+                    .catch { error in
                         errorRelay.accept(Self.mapError(error))
-                    })
-                    .catchAndReturn([])
-                    .asSignal(onErrorSignalWith: .just([])) // keep it UI-friendly
+                        return .just([])
+                    }
             }
-            .asDriver(onErrorJustReturn: [])
+            .share(replay: 1)
 
-        // 5) UI messages
-        let emptyMessage = reposStream
+        let emptyMessage: Observable<String?> = reposStream
             .map { repos -> String? in
                 repos.isEmpty ? "No repositories found." : nil
             }
             .startWith("Type a username and search.")
 
-        let errorMessage = errorRelay
-            .asSignal()
-
-        // 6) Navigation outputs
         let openRepoDetails = input.selectedRepo
-
-        let openRepoURL = input.selectedRepo
-            .map(\.htmlUrl)
 
         return Output(
             isSearchEnabled: isSearchEnabled,
-            isLoading: activity.asDriver(),
+            isLoading: activity.asObservable(),
             repos: reposStream,
-            errorMessage: errorMessage,
             emptyMessage: emptyMessage,
-            openRepoURL: openRepoURL,
+            errorMessage: errorRelay.asObservable(),
             openRepoDetails: openRepoDetails
         )
     }
