@@ -13,7 +13,6 @@ final class SearchViewModel {
 
     struct Input {
         let username: Observable<String>
-        let searchTap: Observable<Void>
         let selectedRepo: Observable<Repo>
     }
 
@@ -27,9 +26,17 @@ final class SearchViewModel {
     }
 
     private let service: GitHubServiceType
+    private let scheduler: SchedulerType
+    private let debounceInterval: RxTimeInterval
 
-    init(service: GitHubServiceType = GitHubService()) {
+    init(
+        service: GitHubServiceType = GitHubService(),
+        scheduler: SchedulerType = MainScheduler.instance,
+        debounceInterval: RxTimeInterval = .milliseconds(400)
+    ) {
         self.service = service
+        self.scheduler = scheduler
+        self.debounceInterval = debounceInterval
     }
 
     func transform(input: Input) -> Output {
@@ -44,11 +51,12 @@ final class SearchViewModel {
         let activity = ActivityIndicator()
         let errorRelay = PublishRelay<String>()
 
-        let searchUsername = input.searchTap
-            .withLatestFrom(username)
+        let debouncedUsername = username
+            .debounce(debounceInterval, scheduler: scheduler)
             .filter { !$0.isEmpty }
+            .distinctUntilChanged()
 
-        let reposStream = searchUsername
+        let reposStream = debouncedUsername
             .flatMapLatest { [service] name in
                 service.fetchRepos(username: name)
                     .trackActivity(activity)
@@ -61,12 +69,8 @@ final class SearchViewModel {
             .share(replay: 1)
 
         let emptyMessage: Observable<String?> = reposStream
-            .map { repos -> String? in
-                repos.isEmpty ? "No repositories found." : nil
-            }
-            .startWith("Type a username and search.")
-
-        let openRepoDetails = input.selectedRepo
+            .map { $0.isEmpty ? "No repositories found." : nil }
+            .startWith("Type a username...")
 
         return Output(
             isSearchEnabled: isSearchEnabled,
@@ -74,7 +78,7 @@ final class SearchViewModel {
             repos: reposStream,
             emptyMessage: emptyMessage,
             errorMessage: errorRelay.asObservable(),
-            openRepoDetails: openRepoDetails
+            openRepoDetails: input.selectedRepo
         )
     }
 

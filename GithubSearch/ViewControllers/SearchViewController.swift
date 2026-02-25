@@ -82,62 +82,54 @@ final class SearchViewController: UIViewController {
     }
 
     private func setupBindings() {
-        // Text
-        let queryTextObservable = searchController.searchBar.rx.text.orEmpty
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .distinctUntilChanged()
-            .share(replay: 1)
-
-        // Trigger: Search button
-        let searchTapObservable = searchController.searchBar.rx.searchButtonClicked
+        let queryText = searchController.searchBar.rx.text.orEmpty
             .asObservable()
 
-        // Selection (throttle optional)
-        let selectedRepoObservable = resultsTableView.rx.modelSelected(Repo.self)
-            .throttle(.milliseconds(500), scheduler: MainScheduler.instance)
+        let selectedRepo = resultsTableView.rx.modelSelected(Repo.self)
             .asObservable()
 
         let input = SearchViewModel.Input(
-            username: queryTextObservable,
-            searchTap: searchTapObservable,
-            selectedRepo: selectedRepoObservable
+            username: queryText,
+            selectedRepo: selectedRepo
         )
 
         let output = viewModel.transform(input: input)
 
-        // UI state
         output.isLoading
+            .observe(on: MainScheduler.instance)
             .bind(to: rx.isLoading)
             .disposed(by: disposeBag)
 
         output.emptyMessage
+            .observe(on: MainScheduler.instance)
             .bind(to: rx.emptyMessage)
             .disposed(by: disposeBag)
 
         output.errorMessage
-            .bind(to: rx.errorMessage)
+            .observe(on: MainScheduler.instance)
+            .subscribe(onNext: { [weak self] message in
+                self?.showErrorAlert(message: message)
+            })
             .disposed(by: disposeBag)
 
-        // Table data
         output.repos
+            .observe(on: MainScheduler.instance)
             .bind(to: resultsTableView.rx.items(
                 cellIdentifier: "RepoCell",
                 cellType: UITableViewCell.self
             )) { _, repo, cell in
-                var contentConfiguration = cell.defaultContentConfiguration()
-                contentConfiguration.text = repo.name
-                contentConfiguration.secondaryText = repo.language
-                cell.contentConfiguration = contentConfiguration
-                cell.accessoryType = UITableViewCell.AccessoryType.disclosureIndicator
+                var content = cell.defaultContentConfiguration()
+                content.text = repo.name
+                content.secondaryText = repo.language
+                cell.contentConfiguration = content
+                cell.accessoryType = .disclosureIndicator
             }
             .disposed(by: disposeBag)
 
-        // Navigation -> Details (single source of truth: output)
         output.openRepoDetails
             .bind(to: onRepoSelected)
             .disposed(by: disposeBag)
 
-        // UX: deselect row
         resultsTableView.rx.itemSelected
             .subscribe(onNext: { [weak self] indexPath in
                 self?.resultsTableView.deselectRow(at: indexPath, animated: true)

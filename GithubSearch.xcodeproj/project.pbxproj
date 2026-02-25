@@ -237,8 +237,8 @@
 				757F7D5A2F44FA1600F16F6E /* ViewControllers */,
 				757F7D5B2F44FA2B00F16F6E /* ViewModels */,
 				757F7D592F44FA0C00F16F6E /* Views */,
+				75F5905D2F4E3E9F00EFE1D1 /* Resources */,
 				757F7D652F44FC3600F16F6E /* Shared */,
-				75AA0D412F435DE500B7FEFD /* Assets.xcassets */,
 				75AA0D432F435DE500B7FEFD /* LaunchScreen.storyboard */,
 				75AA0D462F435DE500B7FEFD /* Info.plist */,
 			);
@@ -261,6 +261,14 @@
 				75AA0D5B2F435DE600B7FEFD /* GithubSearchUITestsLaunchTests.swift */,
 			);
 			path = GithubSearchUITests;
+			sourceTree = "<group>";
+		};
+		75F5905D2F4E3E9F00EFE1D1 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				75AA0D412F435DE500B7FEFD /* Assets.xcassets */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		868A82ABCF66C62DFF17C782 /* Pods */ = {
