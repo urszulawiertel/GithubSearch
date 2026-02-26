@@ -42,7 +42,7 @@ final class SearchViewModel {
     func transform(input: Input) -> Output {
         let username = input.username
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .share(replay: 1)
+            .share(replay: 1, scope: .whileConnected)
 
         let isSearchEnabled = username
             .map { !$0.isEmpty }
@@ -50,31 +50,51 @@ final class SearchViewModel {
 
         let activity = ActivityIndicator()
         let errorRelay = PublishRelay<String>()
+        let didFail = PublishRelay<Void>()
 
         let debouncedUsername = username
             .debounce(debounceInterval, scheduler: scheduler)
-            .filter { !$0.isEmpty }
             .distinctUntilChanged()
 
         let reposStream = debouncedUsername
+            .filter { !$0.isEmpty }
             .flatMapLatest { [service] name in
                 service.fetchRepos(username: name)
                     .trackActivity(activity)
                     .asObservable()
                     .catch { error in
                         errorRelay.accept(Self.mapError(error))
+                        didFail.accept(())
                         return .just([])
                     }
             }
-            .share(replay: 1)
+            .share(replay: 1, scope: .whileConnected)
 
-        let emptyMessage: Observable<String?> = reposStream
-            .map { $0.isEmpty ? "No repositories found." : nil }
-            .startWith("Type a username...")
+        let showEmpty = Observable.merge(
+            debouncedUsername
+                .filter { !$0.isEmpty }
+                .map { _ in true },
+            didFail.map { _ in false }
+        )
+        .startWith(true)
+        .distinctUntilChanged()
+
+        let initialMessage = debouncedUsername
+            .map { $0.isEmpty ? "Type a username..." : nil }
+            .distinctUntilChanged()
+
+        let emptyMessage: Observable<String?> = Observable
+            .combineLatest(initialMessage, reposStream.startWith([]), showEmpty)
+            .map { initial, repos, showEmpty in
+                if let initial { return initial }
+                guard showEmpty else { return nil }
+                return repos.isEmpty ? "No repositories found." : nil
+            }
+            .distinctUntilChanged()
 
         return Output(
             isSearchEnabled: isSearchEnabled,
-            isLoading: activity.asObservable(),
+            isLoading: activity.asObservable().distinctUntilChanged(),
             repos: reposStream,
             emptyMessage: emptyMessage,
             errorMessage: errorRelay.asObservable(),

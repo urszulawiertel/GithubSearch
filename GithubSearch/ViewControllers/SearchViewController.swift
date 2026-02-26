@@ -17,7 +17,7 @@ final class SearchViewController: UIViewController {
     private let disposeBag = DisposeBag()
     private let viewModel: SearchViewModel
 
-    private let resultsTableView = UITableView(frame: .zero, style: .plain)
+    fileprivate let resultsTableView = UITableView(frame: .zero, style: .plain)
     fileprivate let activityIndicatorView = UIActivityIndicatorView(style: .medium)
     fileprivate let emptyStateLabel = UILabel()
 
@@ -57,27 +57,31 @@ final class SearchViewController: UIViewController {
         resultsTableView.keyboardDismissMode = .onDrag
         resultsTableView.tableFooterView = UIView()
 
-        let activityBarButtonItem = UIBarButtonItem(customView: activityIndicatorView)
-        navigationItem.rightBarButtonItem = activityBarButtonItem
-
         emptyStateLabel.numberOfLines = 0
         emptyStateLabel.textAlignment = .center
         emptyStateLabel.textColor = .secondaryLabel
         emptyStateLabel.isHidden = true
 
+        emptyStateLabel.frame = resultsTableView.bounds
+        emptyStateLabel.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        resultsTableView.backgroundView = emptyStateLabel
+
         view.addSubview(resultsTableView)
-        view.addSubview(emptyStateLabel)
+
+        activityIndicatorView.hidesWhenStopped = true
+        activityIndicatorView.stopAnimating()
+        view.addSubview(activityIndicatorView)
+
+        view.bringSubviewToFront(activityIndicatorView)
     }
 
     private func setupLayout() {
-        resultsTableView.snp.makeConstraints { make in
-            make.edges.equalTo(view.safeAreaLayoutGuide)
+        resultsTableView.snp.makeConstraints {
+            $0.edges.equalTo(view.safeAreaLayoutGuide)
         }
 
-        emptyStateLabel.snp.makeConstraints { make in
-            make.center.equalToSuperview()
-            make.leading.greaterThanOrEqualToSuperview().inset(24)
-            make.trailing.lessThanOrEqualToSuperview().inset(24)
+        activityIndicatorView.snp.makeConstraints {
+            $0.center.equalToSuperview()
         }
     }
 
@@ -148,11 +152,16 @@ final class SearchViewController: UIViewController {
 private extension Reactive where Base: SearchViewController {
 
     var isLoading: Binder<Bool> {
-        Binder(base) { viewController, isLoading in
-            if isLoading {
+        Binder(base) { viewController, loading in
+            viewController.view.bringSubviewToFront(viewController.activityIndicatorView)
+
+            if loading {
+                viewController.emptyStateLabel.isHidden = true
+                viewController.resultsTableView.isHidden = true
                 viewController.activityIndicatorView.startAnimating()
             } else {
                 viewController.activityIndicatorView.stopAnimating()
+                viewController.resultsTableView.isHidden = false
             }
         }
     }
@@ -161,12 +170,6 @@ private extension Reactive where Base: SearchViewController {
         Binder(base) { viewController, message in
             viewController.emptyStateLabel.text = message
             viewController.emptyStateLabel.isHidden = (message == nil)
-        }
-    }
-
-    var errorMessage: Binder<String> {
-        Binder(base) { viewController, message in
-            viewController.showErrorAlert(message: message)
         }
     }
 }
