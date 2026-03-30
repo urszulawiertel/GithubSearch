@@ -2,7 +2,7 @@ platform :ios, '16.0'
 use_frameworks!
 
 target 'GithubSearch' do
-  pod 'SwiftLint'
+  pod 'SwiftLint', '~> 0.54'
   pod 'RxSwift', '6.6.0'
   pod 'RxCocoa', '6.6.0'
   pod 'SnapKit', '~> 5.7.0'

@@ -18,7 +18,7 @@ DEPENDENCIES:
   - RxSwift (= 6.6.0)
   - RxTest (= 6.6.0)
   - SnapKit (~> 5.7.0)
-  - SwiftLint
+  - SwiftLint (~> 0.54)
 
 SPEC REPOS:
   trunk:
@@ -39,6 +39,6 @@ SPEC CHECKSUMS:
   SnapKit: d612e99e678a2d3b95bf60b0705ed0a35c03484a
   SwiftLint: c1de071d9d08c8aba837545f6254315bc900e211
 
-PODFILE CHECKSUM: ecc09540e36aa66cfdf440fa7f3c3fd7cbf2c099
+PODFILE CHECKSUM: 497e6da3a2ce033c269568eed05909ce81b07067
 
 COCOAPODS: 1.11.2

@@ -756,7 +756,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 77027A0474887894A31775B4 /* Pods-GithubSearchTests.debug.xcconfig */;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -777,7 +776,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 4E53E06399DFED2F523EC26E /* Pods-GithubSearchTests.release.xcconfig */;
 			buildSettings = {
-				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
