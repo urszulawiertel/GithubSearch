@@ -34,7 +34,7 @@ final class SearchViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "GitHub Search"
+        title = "User Repositories"
         view.backgroundColor = .systemBackground
 
         setupSearch()
@@ -48,7 +48,7 @@ final class SearchViewController: UIViewController {
         navigationItem.hidesSearchBarWhenScrolling = false
 
         searchController.obscuresBackgroundDuringPresentation = false
-        searchController.searchBar.placeholder = "Search repositories"
+        searchController.searchBar.placeholder = "Enter a GitHub username"
         definesPresentationContext = true
     }
 

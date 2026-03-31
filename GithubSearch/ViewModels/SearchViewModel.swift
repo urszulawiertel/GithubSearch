@@ -84,7 +84,7 @@ final class SearchViewModel {
             .share(replay: 1, scope: .whileConnected)
 
         let promptMessage = username
-            .map { $0.isEmpty ? "Type a username..." : nil }
+            .map { $0.isEmpty ? "Enter a GitHub username" : nil }
             .distinctUntilChanged()
 
         let searchFailed = Observable.merge(
@@ -105,7 +105,7 @@ final class SearchViewModel {
                 guard !name.isEmpty else { return nil }
                 guard !isLoading else { return nil }
                 guard !didFail else { return nil }
-                return repos.isEmpty ? "No repositories found." : nil
+                return repos.isEmpty ? "No public repositories found." : nil
             }
             .distinctUntilChanged()
 
