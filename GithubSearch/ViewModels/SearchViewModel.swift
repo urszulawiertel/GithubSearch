@@ -42,6 +42,7 @@ final class SearchViewModel {
     func transform(input: Input) -> Output {
         let username = input.username
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .distinctUntilChanged()
             .share(replay: 1, scope: .whileConnected)
 
         let isSearchEnabled = username
@@ -55,8 +56,9 @@ final class SearchViewModel {
         let debouncedUsername = username
             .debounce(debounceInterval, scheduler: scheduler)
             .distinctUntilChanged()
+            .share(replay: 1, scope: .whileConnected)
 
-        let reposStream = debouncedUsername
+        let fetchedRepos = debouncedUsername
             .filter { !$0.isEmpty }
             .flatMapLatest { [service] name in
                 service.fetchRepos(username: name)
@@ -70,31 +72,52 @@ final class SearchViewModel {
             }
             .share(replay: 1, scope: .whileConnected)
 
-        let showEmpty = Observable.merge(
-            debouncedUsername
-                .filter { !$0.isEmpty }
-                .map { _ in true },
-            didFail.map { _ in false }
-        )
-        .startWith(true)
-        .distinctUntilChanged()
+        let clearedRepos = username
+            .filter { $0.isEmpty }
+            .map { _ in [Repo]() }
 
-        let initialMessage = debouncedUsername
+        let reposStream = Observable.merge(clearedRepos, fetchedRepos)
+            .share(replay: 1, scope: .whileConnected)
+
+        let loading = activity.asObservable()
+            .distinctUntilChanged()
+            .share(replay: 1, scope: .whileConnected)
+
+        let promptMessage = username
             .map { $0.isEmpty ? "Type a username..." : nil }
             .distinctUntilChanged()
 
-        let emptyMessage: Observable<String?> = Observable
-            .combineLatest(initialMessage, reposStream.startWith([]), showEmpty)
-            .map { initial, repos, showEmpty in
-                if let initial { return initial }
-                guard showEmpty else { return nil }
+        let searchFailed = Observable.merge(
+            debouncedUsername.map { _ in false },
+            didFail.map { _ in true }
+        )
+        .startWith(false)
+        .distinctUntilChanged()
+
+        let noResultsMessage: Observable<String?> = Observable
+            .combineLatest(
+                debouncedUsername,
+                fetchedRepos,
+                loading,
+                searchFailed
+            )
+            .map { name, repos, isLoading, didFail in
+                guard !name.isEmpty else { return nil }
+                guard !isLoading else { return nil }
+                guard !didFail else { return nil }
                 return repos.isEmpty ? "No repositories found." : nil
             }
             .distinctUntilChanged()
 
+        let emptyMessage = Observable.merge(
+            promptMessage,
+            noResultsMessage
+        )
+        .distinctUntilChanged()
+
         return Output(
             isSearchEnabled: isSearchEnabled,
-            isLoading: activity.asObservable().distinctUntilChanged(),
+            isLoading: loading,
             repos: reposStream,
             emptyMessage: emptyMessage,
             errorMessage: errorRelay.asObservable(),

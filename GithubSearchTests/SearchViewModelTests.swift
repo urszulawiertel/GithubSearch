@@ -167,6 +167,81 @@ final class SearchViewModelTests: XCTestCase {
         XCTAssertEqual(last, repos)
     }
 
+    func test_repos_clearsImmediately_whenUsernameBecomesEmptyAfterShowingResults() {
+        // given
+        let service = GitHubServiceMock()
+        let repos = [Repo.mock(name: "Repo1"), Repo.mock(name: "Repo2")]
+        service.stubbedRepos = repos
+
+        let viewModel = SearchViewModel(
+            service: service,
+            scheduler: scheduler,
+            debounceInterval: .milliseconds(400)
+        )
+
+        let username = scheduler.createHotObservable([
+            .next(10, "apple"),
+            .next(500, "   ")
+        ]).asObservable()
+
+        let selectedRepo: Observable<Repo> = scheduler
+            .createHotObservable([Recorded<Event<Repo>>]())
+            .asObservable()
+
+        let output = viewModel.transform(input: .init(username: username, selectedRepo: selectedRepo))
+
+        let observer = scheduler.createObserver([Repo].self)
+
+        // when
+        output.repos
+            .subscribe(observer)
+            .disposed(by: disposeBag)
+
+        scheduler.start()
+
+        // then
+        let values = observer.events.compactMap { $0.value.element }
+        XCTAssertEqual(values, [repos, []])
+    }
+
+    func test_emptyMessage_resetsToPromptImmediately_whenUsernameBecomesEmpty() {
+        // given
+        let service = GitHubServiceMock()
+        service.stubbedRepos = [Repo.mock(name: "Repo1")]
+
+        let viewModel = SearchViewModel(
+            service: service,
+            scheduler: scheduler,
+            debounceInterval: .milliseconds(400)
+        )
+
+        let username = scheduler.createHotObservable([
+            .next(10, "apple"),
+            .next(500, "")
+        ]).asObservable()
+
+        let selectedRepo: Observable<Repo> = scheduler
+            .createHotObservable([Recorded<Event<Repo>>]())
+            .asObservable()
+
+        let output = viewModel.transform(input: .init(username: username, selectedRepo: selectedRepo))
+
+        let observer = scheduler.createObserver(String.self)
+
+        // when
+        output.emptyMessage
+            .map { $0 ?? "<nil>" }
+            .subscribe(observer)
+            .disposed(by: disposeBag)
+
+        scheduler.start()
+
+        // then
+        let values = observer.events.compactMap { $0.value.element }
+        print(values)
+        XCTAssertEqual(values, ["<nil>", "Type a username..."])
+    }
+
     func test_errorMessage_emitsMappedText_andReposEmitsEmptyArray_onFailure() {
         // given
         let service = GitHubServiceMock()
