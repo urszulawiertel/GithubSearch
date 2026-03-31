@@ -238,7 +238,6 @@ final class SearchViewModelTests: XCTestCase {
 
         // then
         let values = observer.events.compactMap { $0.value.element }
-        print(values)
         XCTAssertEqual(values, ["<nil>", "Enter a GitHub username"])
     }
 
