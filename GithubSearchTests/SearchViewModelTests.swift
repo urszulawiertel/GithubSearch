@@ -244,7 +244,7 @@ final class SearchViewModelTests: XCTestCase {
     func test_errorMessage_emitsMappedText_andReposEmitsEmptyArray_onFailure() {
         // given
         let service = GitHubServiceMock()
-        service.stubbedError = .http(404)
+        service.stubbedError = GitHubServiceError.userNotFound
 
         let viewModel = SearchViewModel(
             service: service,
@@ -278,10 +278,59 @@ final class SearchViewModelTests: XCTestCase {
 
         // then
         let errors = errorObserver.events.compactMap { $0.value.element }
-        XCTAssertTrue(errors.contains(where: { $0.contains("HTTP error: 404") }))
+        XCTAssertEqual(errors, ["We couldn't find that GitHub user."])
 
         let lastRepos = reposObserver.events.compactMap { $0.value.element }.last
         XCTAssertEqual(lastRepos, [])
+    }
+
+    func test_errorMessage_usesFriendlyMessages_forServiceErrors() {
+        XCTAssertEqual(GitHubServiceError.userNotFound.userMessage, "We couldn't find that GitHub user.")
+        XCTAssertEqual(GitHubServiceError.connectivity.userMessage, "You're offline right now. Check your internet connection and try again.")
+        XCTAssertEqual(GitHubServiceError.rateLimited.userMessage, "GitHub is receiving too many requests right now. Please wait a moment and try again.")
+        XCTAssertEqual(GitHubServiceError.unknown.userMessage, "Something went wrong. Please try again.")
+    }
+
+    func test_errorMessage_fallsBackToGenericMessage_forUnknownErrors() {
+        // given
+        struct DummyError: Error {}
+
+        let service = GitHubServiceMock()
+        service.stubbedError = DummyError()
+
+        let viewModel = SearchViewModel(
+            service: service,
+            scheduler: scheduler,
+            debounceInterval: .milliseconds(400)
+        )
+
+        let username = scheduler.createHotObservable([
+            .next(10, "apple")
+        ]).asObservable()
+
+        let selectedRepo: Observable<Repo> = scheduler
+            .createHotObservable([Recorded<Event<Repo>>]())
+            .asObservable()
+
+        let output = viewModel.transform(input: .init(username: username, selectedRepo: selectedRepo))
+
+        let errorObserver = scheduler.createObserver(String.self)
+        let reposObserver = scheduler.createObserver([Repo].self)
+
+        // when
+        output.errorMessage
+            .subscribe(errorObserver)
+            .disposed(by: disposeBag)
+
+        output.repos
+            .subscribe(reposObserver)
+            .disposed(by: disposeBag)
+
+        scheduler.start()
+
+        // then
+        let errors = errorObserver.events.compactMap { $0.value.element }
+        XCTAssertEqual(errors, ["Something went wrong. Please try again."])
     }
 
     func test_openRepoDetails_forwardsSelectedRepo() {

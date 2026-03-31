@@ -127,12 +127,8 @@ final class SearchViewModel {
 
     private static func mapError(_ error: Error) -> String {
         if let serviceError = error as? GitHubServiceError {
-            switch serviceError {
-            case .invalidURL: return "Invalid username."
-            case .http(let code): return "HTTP error: \(code)"
-            case .decoding: return "Failed to decode response."
-            }
+            return serviceError.userMessage
         }
-        return "Network error."
+        return "Something went wrong. Please try again."
     }
 }

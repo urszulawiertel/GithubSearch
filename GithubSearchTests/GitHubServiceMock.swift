@@ -15,7 +15,7 @@ final class GitHubServiceMock: GitHubServiceType {
     var lastUsername: String?
 
     var stubbedRepos: [Repo] = []
-    var stubbedError: GitHubServiceError?
+    var stubbedError: Error?
 
     func fetchRepos(username: String) -> Single<[Repo]> {
         fetchReposCallCount += 1
