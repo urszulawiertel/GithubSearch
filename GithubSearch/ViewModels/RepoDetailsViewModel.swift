@@ -11,6 +11,15 @@ import RxCocoa
 
 final class RepoDetailsViewModel {
 
+    private enum Constants {
+        static let titleFallback = "Repository"
+        static let subtitleFallback = "Full name unavailable"
+        static let descriptionFallback = "No description provided."
+        static let languageFallback = "Not specified"
+        static let noStarsFallback = "No stars yet"
+        static let openButtonTitle = "Open on GitHub"
+    }
+
     struct Input {
         let openOnGitHubTapped: Signal<Void>
     }
@@ -18,11 +27,13 @@ final class RepoDetailsViewModel {
     struct State: Equatable {
         let title: String
         let subtitle: String
+        let subtitleIsSecondary: Bool
         let descriptionText: String
         let descriptionIsSecondary: Bool
         let languageText: String
         let languageIsSecondary: Bool
         let starsText: String
+        let starsIsSecondary: Bool
         let openButtonTitle: String
     }
 
@@ -38,15 +49,23 @@ final class RepoDetailsViewModel {
     }
 
     func transform(input: Input) -> Output {
+        let title = Self.normalized(repo.name) ?? Constants.titleFallback
+        let subtitle = Self.normalized(repo.fullName) ?? Constants.subtitleFallback
+        let description = Self.normalized(repo.description) ?? Constants.descriptionFallback
+        let language = Self.normalized(repo.language) ?? Constants.languageFallback
+        let starsCount = max(repo.stargazersCount, 0)
+
         let state = State(
-            title: repo.name,
-            subtitle: repo.fullName,
-            descriptionText: repo.description ?? "No description",
-            descriptionIsSecondary: repo.description == nil,
-            languageText: repo.language ?? "—",
-            languageIsSecondary: repo.language == nil,
-            starsText: "★ \(repo.stargazersCount)",
-            openButtonTitle: "Open on GitHub"
+            title: title,
+            subtitle: subtitle,
+            subtitleIsSecondary: subtitle == Constants.subtitleFallback,
+            descriptionText: description,
+            descriptionIsSecondary: description == Constants.descriptionFallback,
+            languageText: language,
+            languageIsSecondary: language == Constants.languageFallback,
+            starsText: Self.formatStarsText(count: starsCount),
+            starsIsSecondary: starsCount == 0,
+            openButtonTitle: Constants.openButtonTitle
         )
 
         let openRepoURL = input.openOnGitHubTapped
@@ -56,5 +75,23 @@ final class RepoDetailsViewModel {
             state: Driver.just(state),
             openRepoURL: openRepoURL
         )
+    }
+
+    private static func normalized(_ text: String?) -> String? {
+        guard let trimmed = text?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+            return nil
+        }
+        return trimmed
+    }
+
+    private static func formatStarsText(count: Int) -> String {
+        guard count > 0 else {
+            return Constants.noStarsFallback
+        }
+
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        let formattedCount = formatter.string(from: NSNumber(value: count)) ?? "\(count)"
+        return "★ \(formattedCount)"
     }
 }

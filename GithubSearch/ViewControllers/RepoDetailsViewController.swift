@@ -134,27 +134,32 @@ final class RepoDetailsViewController: UIViewController {
     private func setupStyles() {
         titleLabel.font = .preferredFont(forTextStyle: .title2)
         titleLabel.numberOfLines = 0
+        titleLabel.accessibilityIdentifier = "repoDetails.titleLabel"
 
         subtitleLabel.font = .preferredFont(forTextStyle: .subheadline)
         subtitleLabel.textColor = .secondaryLabel
         subtitleLabel.numberOfLines = 0
+        subtitleLabel.accessibilityIdentifier = "repoDetails.subtitleLabel"
 
         descriptionLabel.font = .preferredFont(forTextStyle: .body)
         descriptionLabel.numberOfLines = 0
+        descriptionLabel.accessibilityIdentifier = "repoDetails.descriptionLabel"
 
         languageTitleLabel.font = .preferredFont(forTextStyle: .caption1)
         languageTitleLabel.textColor = .secondaryLabel
         languageTitleLabel.text = "Language"
 
         languageValueLabel.font = .preferredFont(forTextStyle: .body)
-        languageValueLabel.numberOfLines = 1
+        languageValueLabel.numberOfLines = 0
+        languageValueLabel.accessibilityIdentifier = "repoDetails.languageValueLabel"
 
         starsTitleLabel.font = .preferredFont(forTextStyle: .caption1)
         starsTitleLabel.textColor = .secondaryLabel
         starsTitleLabel.text = "Stars"
 
         starsValueLabel.font = .preferredFont(forTextStyle: .body)
-        starsValueLabel.numberOfLines = 1
+        starsValueLabel.numberOfLines = 0
+        starsValueLabel.accessibilityIdentifier = "repoDetails.starsValueLabel"
 
         var configuration = UIButton.Configuration.filled()
         configuration.cornerStyle = .medium
@@ -162,6 +167,8 @@ final class RepoDetailsViewController: UIViewController {
         configuration.baseForegroundColor = .white
         configuration.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16)
         openOnGitHubButton.configuration = configuration
+        openOnGitHubButton.accessibilityIdentifier = "repoDetails.openOnGitHubButton"
+        openOnGitHubButton.accessibilityHint = "Opens the repository in GitHub."
     }
 
     private func setupBindings() {
@@ -192,6 +199,7 @@ private extension Reactive where Base: RepoDetailsViewController {
         Binder(base) { viewController, state in
             viewController.titleLabel.text = state.title
             viewController.subtitleLabel.text = state.subtitle
+            viewController.subtitleLabel.textColor = state.subtitleIsSecondary ? .tertiaryLabel : .secondaryLabel
 
             viewController.descriptionLabel.text = state.descriptionText
             viewController.descriptionLabel.textColor = state.descriptionIsSecondary ? .secondaryLabel : .label
@@ -200,6 +208,7 @@ private extension Reactive where Base: RepoDetailsViewController {
             viewController.languageValueLabel.textColor = state.languageIsSecondary ? .secondaryLabel : .label
 
             viewController.starsValueLabel.text = state.starsText
+            viewController.starsValueLabel.textColor = state.starsIsSecondary ? .secondaryLabel : .label
 
             viewController.openOnGitHubButton.configuration?.title = state.openButtonTitle
         }
