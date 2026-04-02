@@ -12,6 +12,10 @@ import RxCocoa
 
 final class SearchViewController: UIViewController {
 
+    private enum Constants {
+        static let estimatedRowHeight: CGFloat = 104
+    }
+
     let onRepoSelected = PublishRelay<Repo>()
 
     private let disposeBag = DisposeBag()
@@ -53,7 +57,10 @@ final class SearchViewController: UIViewController {
     }
 
     private func setupUI() {
-        resultsTableView.register(UITableViewCell.self, forCellReuseIdentifier: "RepoCell")
+        resultsTableView.register(RepositoryCell.self, forCellReuseIdentifier: RepositoryCell.reuseID)
+        resultsTableView.rowHeight = UITableView.automaticDimension
+        resultsTableView.estimatedRowHeight = Constants.estimatedRowHeight
+        resultsTableView.separatorStyle = .singleLine
         resultsTableView.keyboardDismissMode = .onDrag
         resultsTableView.tableFooterView = UIView()
 
@@ -114,14 +121,10 @@ final class SearchViewController: UIViewController {
         output.repos
             .observe(on: MainScheduler.instance)
             .bind(to: resultsTableView.rx.items(
-                cellIdentifier: "RepoCell",
-                cellType: UITableViewCell.self
+                cellIdentifier: RepositoryCell.reuseID,
+                cellType: RepositoryCell.self
             )) { _, repo, cell in
-                var content = cell.defaultContentConfiguration()
-                content.text = repo.name
-                content.secondaryText = repo.language
-                cell.contentConfiguration = content
-                cell.accessoryType = .disclosureIndicator
+                cell.configure(with: repo)
             }
             .disposed(by: disposeBag)
 
