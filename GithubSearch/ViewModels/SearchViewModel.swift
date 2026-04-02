@@ -11,6 +11,14 @@ import RxCocoa
 
 final class SearchViewModel {
 
+    enum ViewState: Equatable {
+        case prompt(String)
+        case loading
+        case results([Repo])
+        case empty(String)
+        case failure
+    }
+
     struct Input {
         let username: Observable<String>
         let selectedRepo: Observable<Repo>
@@ -18,6 +26,7 @@ final class SearchViewModel {
 
     struct Output {
         let isSearchEnabled: Observable<Bool>
+        let viewState: Observable<ViewState>
         let isLoading: Observable<Bool>
         let repos: Observable<[Repo]>
         let emptyMessage: Observable<String?>
@@ -49,74 +58,26 @@ final class SearchViewModel {
             .map { !$0.isEmpty }
             .distinctUntilChanged()
 
-        let activity = ActivityIndicator()
         let errorRelay = PublishRelay<String>()
-        let didFail = PublishRelay<Void>()
-
-        let debouncedUsername = username
-            .debounce(debounceInterval, scheduler: scheduler)
+        let viewState = makeViewState(username: username, errorRelay: errorRelay)
             .distinctUntilChanged()
             .share(replay: 1, scope: .whileConnected)
 
-        let fetchedRepos = debouncedUsername
-            .filter { !$0.isEmpty }
-            .flatMapLatest { [service] name in
-                service.fetchRepos(username: name)
-                    .trackActivity(activity)
-                    .asObservable()
-                    .catch { error in
-                        errorRelay.accept(Self.mapError(error))
-                        didFail.accept(())
-                        return .just([])
-                    }
-            }
-            .share(replay: 1, scope: .whileConnected)
-
-        let clearedRepos = username
-            .filter { $0.isEmpty }
-            .map { _ in [Repo]() }
-
-        let reposStream = Observable.merge(clearedRepos, fetchedRepos)
-            .share(replay: 1, scope: .whileConnected)
-
-        let loading = activity.asObservable()
-            .distinctUntilChanged()
-            .share(replay: 1, scope: .whileConnected)
-
-        let promptMessage = username
-            .map { $0.isEmpty ? "Enter a GitHub username" : nil }
-            .distinctUntilChanged()
-
-        let searchFailed = Observable.merge(
-            debouncedUsername.map { _ in false },
-            didFail.map { _ in true }
-        )
-        .startWith(false)
-        .distinctUntilChanged()
-
-        let noResultsMessage: Observable<String?> = Observable
-            .combineLatest(
-                debouncedUsername,
-                fetchedRepos,
-                loading,
-                searchFailed
-            )
-            .map { name, repos, isLoading, didFail in
-                guard !name.isEmpty else { return nil }
-                guard !isLoading else { return nil }
-                guard !didFail else { return nil }
-                return repos.isEmpty ? "No public repositories found." : nil
+        let loading = viewState
+            .map { state in
+                if case .loading = state {
+                    return true
+                }
+                return false
             }
             .distinctUntilChanged()
 
-        let emptyMessage = Observable.merge(
-            promptMessage,
-            noResultsMessage
-        )
-        .distinctUntilChanged()
+        let reposStream = makeReposStream(viewState: viewState)
+        let emptyMessage = makeEmptyMessage(viewState: viewState)
 
         return Output(
             isSearchEnabled: isSearchEnabled,
+            viewState: viewState,
             isLoading: loading,
             repos: reposStream,
             emptyMessage: emptyMessage,
@@ -130,5 +91,60 @@ final class SearchViewModel {
             return serviceError.userMessage
         }
         return "Something went wrong. Please try again."
+    }
+
+    private func makeViewState(username: Observable<String>, errorRelay: PublishRelay<String>) -> Observable<ViewState> {
+        username.flatMapLatest { [service, scheduler, debounceInterval] name -> Observable<ViewState> in
+            guard !name.isEmpty else {
+                return .just(.prompt("Enter a GitHub username"))
+            }
+
+            let searchResult = Observable<Int>
+                .timer(debounceInterval, scheduler: scheduler)
+                .flatMapLatest { _ in
+                    service.fetchRepos(username: name)
+                        .asObservable()
+                        .map(Self.mapReposToState)
+                        .catch { error in
+                            errorRelay.accept(Self.mapError(error))
+                            return .just(.failure)
+                        }
+                }
+
+            return Observable.concat(
+                .just(.loading),
+                searchResult
+            )
+        }
+    }
+
+    private func makeReposStream(viewState: Observable<ViewState>) -> Observable<[Repo]> {
+        viewState
+            .map { state in
+                if case let .results(repos) = state {
+                    return repos
+                }
+                return []
+            }
+            .distinctUntilChanged()
+    }
+
+    private func makeEmptyMessage(viewState: Observable<ViewState>) -> Observable<String?> {
+        viewState
+            .map { state -> String? in
+                switch state {
+                case let .prompt(message), let .empty(message):
+                    return message
+                case .loading, .results, .failure:
+                    return nil
+                }
+            }
+            .distinctUntilChanged()
+    }
+
+    private static func mapReposToState(_ repos: [Repo]) -> ViewState {
+        repos.isEmpty
+            ? .empty("No public repositories found.")
+            : .results(repos)
     }
 }

@@ -201,7 +201,7 @@ final class SearchViewModelTests: XCTestCase {
 
         // then
         let values = observer.events.compactMap { $0.value.element }
-        XCTAssertEqual(values, [repos, []])
+        XCTAssertEqual(values, [[], repos, []])
     }
 
     func test_emptyMessage_resetsToPromptImmediately_whenUsernameBecomesEmpty() {

@@ -99,14 +99,9 @@ final class SearchViewController: UIViewController {
 
         let output = viewModel.transform(input: input)
 
-        output.isLoading
+        output.viewState
             .observe(on: MainScheduler.instance)
-            .bind(to: rx.isLoading)
-            .disposed(by: disposeBag)
-
-        output.emptyMessage
-            .observe(on: MainScheduler.instance)
-            .bind(to: rx.emptyMessage)
+            .bind(to: rx.viewState)
             .disposed(by: disposeBag)
 
         output.errorMessage
@@ -142,6 +137,11 @@ final class SearchViewController: UIViewController {
     }
 
     fileprivate func showErrorAlert(message: String) {
+        if let alertController = presentedViewController as? UIAlertController {
+            alertController.message = message
+            return
+        }
+
         let alertController = UIAlertController(title: "Error", message: message, preferredStyle: .alert)
         alertController.addAction(UIAlertAction(title: "OK", style: .default))
         present(alertController, animated: true)
@@ -151,25 +151,28 @@ final class SearchViewController: UIViewController {
 // MARK: - Rx Bindings
 private extension Reactive where Base: SearchViewController {
 
-    var isLoading: Binder<Bool> {
-        Binder(base) { viewController, loading in
+    var viewState: Binder<SearchViewModel.ViewState> {
+        Binder(base) { viewController, state in
             viewController.view.bringSubviewToFront(viewController.activityIndicatorView)
 
-            if loading {
+            switch state {
+            case .loading:
                 viewController.emptyStateLabel.isHidden = true
                 viewController.resultsTableView.isHidden = true
                 viewController.activityIndicatorView.startAnimating()
-            } else {
+
+            case let .prompt(message), let .empty(message):
                 viewController.activityIndicatorView.stopAnimating()
+                viewController.emptyStateLabel.text = message
+                viewController.emptyStateLabel.isHidden = false
+                viewController.resultsTableView.isHidden = false
+
+            case .results, .failure:
+                viewController.activityIndicatorView.stopAnimating()
+                viewController.emptyStateLabel.text = nil
+                viewController.emptyStateLabel.isHidden = true
                 viewController.resultsTableView.isHidden = false
             }
-        }
-    }
-
-    var emptyMessage: Binder<String?> {
-        Binder(base) { viewController, message in
-            viewController.emptyStateLabel.text = message
-            viewController.emptyStateLabel.isHidden = (message == nil)
         }
     }
 }
