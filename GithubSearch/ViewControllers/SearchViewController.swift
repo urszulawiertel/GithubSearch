@@ -102,12 +102,8 @@ final class SearchViewController: UIViewController {
         let queryText = searchController.searchBar.rx.text.orEmpty
             .asObservable()
 
-        let selectedRepo = resultsTableView.rx.modelSelected(Repo.self)
-            .asObservable()
-
         let input = SearchViewModel.Input(
-            username: queryText,
-            selectedRepo: selectedRepo
+            username: queryText
         )
 
         let output = viewModel.transform(input: input)
@@ -134,7 +130,7 @@ final class SearchViewController: UIViewController {
             }
             .disposed(by: disposeBag)
 
-        output.openRepoDetails
+        resultsTableView.rx.modelSelected(Repo.self)
             .bind(to: onRepoSelected)
             .disposed(by: disposeBag)
 

@@ -21,17 +21,12 @@ final class SearchViewModel {
 
     struct Input {
         let username: Observable<String>
-        let selectedRepo: Observable<Repo>
     }
 
     struct Output {
-        let isSearchEnabled: Observable<Bool>
         let viewState: Observable<ViewState>
-        let isLoading: Observable<Bool>
         let repos: Observable<[Repo]>
-        let emptyMessage: Observable<String?>
         let errorMessage: Observable<String>
-        let openRepoDetails: Observable<Repo>
     }
 
     private let service: GitHubServiceType
@@ -54,35 +49,15 @@ final class SearchViewModel {
             .distinctUntilChanged()
             .share(replay: 1, scope: .whileConnected)
 
-        let isSearchEnabled = username
-            .map { !$0.isEmpty }
-            .distinctUntilChanged()
-
         let errorRelay = PublishRelay<String>()
         let viewState = makeViewState(username: username, errorRelay: errorRelay)
             .distinctUntilChanged()
             .share(replay: 1, scope: .whileConnected)
 
-        let loading = viewState
-            .map { state in
-                if case .loading = state {
-                    return true
-                }
-                return false
-            }
-            .distinctUntilChanged()
-
-        let reposStream = makeReposStream(viewState: viewState)
-        let emptyMessage = makeEmptyMessage(viewState: viewState)
-
         return Output(
-            isSearchEnabled: isSearchEnabled,
             viewState: viewState,
-            isLoading: loading,
-            repos: reposStream,
-            emptyMessage: emptyMessage,
-            errorMessage: errorRelay.asObservable(),
-            openRepoDetails: input.selectedRepo
+            repos: makeReposStream(viewState: viewState),
+            errorMessage: errorRelay.asObservable()
         )
     }
 
@@ -128,20 +103,6 @@ final class SearchViewModel {
             }
             .distinctUntilChanged()
     }
-
-    private func makeEmptyMessage(viewState: Observable<ViewState>) -> Observable<String?> {
-        viewState
-            .map { state -> String? in
-                switch state {
-                case let .prompt(message), let .empty(message):
-                    return message
-                case .loading, .results, .failure:
-                    return nil
-                }
-            }
-            .distinctUntilChanged()
-    }
-
     private static func mapReposToState(_ repos: [Repo]) -> ViewState {
         repos.isEmpty
             ? .empty("No public repositories found.")

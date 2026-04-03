@@ -50,7 +50,7 @@ final class SearchViewModelStateTests: XCTestCase {
         XCTAssertEqual(values, [[], repos, [], repos])
     }
 
-    func test_isLoading_startsImmediately_forNonEmptyQueryChanges() {
+    func test_viewState_startsImmediately_withLoading_forNonEmptyQueryChanges() {
         let service = GitHubServiceMock()
         service.stubbedRepos = [Repo.mock(name: "Repo1")]
 
@@ -61,16 +61,16 @@ final class SearchViewModelStateTests: XCTestCase {
             .next(900, "")
         ]))
 
-        let observer = scheduler.createObserver(Bool.self)
+        let observer = scheduler.createObserver(SearchViewModel.ViewState.self)
 
-        output.isLoading
+        output.viewState
             .subscribe(observer)
             .disposed(by: disposeBag)
 
         scheduler.start()
 
         let values = observer.events.compactMap { $0.value.element }
-        XCTAssertEqual(values, [true, false, true, false])
+        XCTAssertEqual(values, [.loading, .results(service.stubbedRepos), .loading, .results(service.stubbedRepos), .prompt("Enter a GitHub username")])
     }
 
     func test_viewState_emitsFailure_andErrorMessage_whenFetchFails() {
@@ -135,10 +135,7 @@ final class SearchViewModelStateTests: XCTestCase {
 
     private func makeInput(usernameEvents: [Recorded<Event<String>>]) -> SearchViewModel.Input {
         let username = scheduler.createHotObservable(usernameEvents).asObservable()
-        let selectedRepo: Observable<Repo> = scheduler
-            .createHotObservable([Recorded<Event<Repo>>]())
-            .asObservable()
 
-        return .init(username: username, selectedRepo: selectedRepo)
+        return .init(username: username)
     }
 }

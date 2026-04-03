@@ -28,43 +28,6 @@ final class SearchViewModelTests: XCTestCase {
         super.tearDown()
     }
 
-    func test_isSearchEnabled_emitsFalseForEmptyAndWhitespaceTrueForNonEmpty() {
-        // given
-        let service = GitHubServiceMock()
-        let viewModel = SearchViewModel(
-            service: service,
-            scheduler: scheduler,
-            debounceInterval: .milliseconds(400)
-        )
-
-        let username = scheduler.createHotObservable([
-            .next(10, ""),
-            .next(20, "   "),
-            .next(30, "apple"),
-            .next(40, " apple "),
-            .next(50, "")
-        ]).asObservable()
-
-        let selectedRepo: Observable<Repo> = scheduler
-            .createHotObservable([Recorded<Event<Repo>>]())
-            .asObservable()
-
-        let output = viewModel.transform(input: .init(username: username, selectedRepo: selectedRepo))
-
-        let observer = scheduler.createObserver(Bool.self)
-
-        // when
-        output.isSearchEnabled
-            .subscribe(observer)
-            .disposed(by: disposeBag)
-
-        scheduler.start()
-
-        // then
-        let values = observer.events.compactMap { $0.value.element }
-        XCTAssertEqual(values, [false, true, false])
-    }
-
     func test_debounce_triggersFetchOnlyAfterUserStopsTyping() {
         // given
         let service = GitHubServiceMock()
@@ -84,11 +47,7 @@ final class SearchViewModelTests: XCTestCase {
             .next(30, "apple")
         ]).asObservable()
 
-        let selectedRepo: Observable<Repo> = scheduler
-            .createHotObservable([Recorded<Event<Repo>>]())
-            .asObservable()
-
-        let output = viewModel.transform(input: .init(username: username, selectedRepo: selectedRepo))
+        let output = viewModel.transform(input: .init(username: username))
 
         // when
         output.repos
@@ -118,12 +77,8 @@ final class SearchViewModelTests: XCTestCase {
             .next(20, "      ")
         ]).asObservable()
 
-        let selectedRepo: Observable<Repo> = scheduler
-            .createHotObservable([Recorded<Event<Repo>>]())
-            .asObservable()
-
         // when
-        _ = viewModel.transform(input: .init(username: username, selectedRepo: selectedRepo))
+        _ = viewModel.transform(input: .init(username: username))
 
         scheduler.start()
 
@@ -147,11 +102,7 @@ final class SearchViewModelTests: XCTestCase {
             .next(10, "apple")
         ]).asObservable()
 
-        let selectedRepo: Observable<Repo> = scheduler
-            .createHotObservable([Recorded<Event<Repo>>]())
-            .asObservable()
-
-        let output = viewModel.transform(input: .init(username: username, selectedRepo: selectedRepo))
+        let output = viewModel.transform(input: .init(username: username))
 
         let observer = scheduler.createObserver([Repo].self)
 
@@ -184,11 +135,7 @@ final class SearchViewModelTests: XCTestCase {
             .next(500, "   ")
         ]).asObservable()
 
-        let selectedRepo: Observable<Repo> = scheduler
-            .createHotObservable([Recorded<Event<Repo>>]())
-            .asObservable()
-
-        let output = viewModel.transform(input: .init(username: username, selectedRepo: selectedRepo))
+        let output = viewModel.transform(input: .init(username: username))
 
         let observer = scheduler.createObserver([Repo].self)
 
@@ -204,7 +151,7 @@ final class SearchViewModelTests: XCTestCase {
         XCTAssertEqual(values, [[], repos, []])
     }
 
-    func test_emptyMessage_resetsToPromptImmediately_whenUsernameBecomesEmpty() {
+    func test_viewState_resetsToPromptImmediately_whenUsernameBecomesEmpty() {
         // given
         let service = GitHubServiceMock()
         service.stubbedRepos = [Repo.mock(name: "Repo1")]
@@ -220,17 +167,12 @@ final class SearchViewModelTests: XCTestCase {
             .next(500, "")
         ]).asObservable()
 
-        let selectedRepo: Observable<Repo> = scheduler
-            .createHotObservable([Recorded<Event<Repo>>]())
-            .asObservable()
+        let output = viewModel.transform(input: .init(username: username))
 
-        let output = viewModel.transform(input: .init(username: username, selectedRepo: selectedRepo))
-
-        let observer = scheduler.createObserver(String.self)
+        let observer = scheduler.createObserver(SearchViewModel.ViewState.self)
 
         // when
-        output.emptyMessage
-            .map { $0 ?? "<nil>" }
+        output.viewState
             .subscribe(observer)
             .disposed(by: disposeBag)
 
@@ -238,7 +180,7 @@ final class SearchViewModelTests: XCTestCase {
 
         // then
         let values = observer.events.compactMap { $0.value.element }
-        XCTAssertEqual(values, ["<nil>", "Enter a GitHub username"])
+        XCTAssertEqual(values, [.loading, .results(service.stubbedRepos), .prompt("Enter a GitHub username")])
     }
 
     func test_errorMessage_emitsMappedText_andReposEmitsEmptyArray_onFailure() {
@@ -256,11 +198,7 @@ final class SearchViewModelTests: XCTestCase {
             .next(10, "apple")
         ]).asObservable()
 
-        let selectedRepo: Observable<Repo> = scheduler
-            .createHotObservable([Recorded<Event<Repo>>]())
-            .asObservable()
-
-        let output = viewModel.transform(input: .init(username: username, selectedRepo: selectedRepo))
+        let output = viewModel.transform(input: .init(username: username))
 
         let errorObserver = scheduler.createObserver(String.self)
         let reposObserver = scheduler.createObserver([Repo].self)
@@ -308,11 +246,7 @@ final class SearchViewModelTests: XCTestCase {
             .next(10, "apple")
         ]).asObservable()
 
-        let selectedRepo: Observable<Repo> = scheduler
-            .createHotObservable([Recorded<Event<Repo>>]())
-            .asObservable()
-
-        let output = viewModel.transform(input: .init(username: username, selectedRepo: selectedRepo))
+        let output = viewModel.transform(input: .init(username: username))
 
         let errorObserver = scheduler.createObserver(String.self)
         let reposObserver = scheduler.createObserver([Repo].self)
@@ -333,38 +267,4 @@ final class SearchViewModelTests: XCTestCase {
         XCTAssertEqual(errors, ["Something went wrong. Please try again."])
     }
 
-    func test_openRepoDetails_forwardsSelectedRepo() {
-        // given
-        let service = GitHubServiceMock()
-        let viewModel = SearchViewModel(
-            service: service,
-            scheduler: scheduler,
-            debounceInterval: .milliseconds(400)
-        )
-
-        let username = scheduler.createHotObservable([
-            .next(10, "apple")
-        ]).asObservable()
-
-        let selected = Repo.mock(name: "ChosenRepo")
-
-        let selectedRepo: Observable<Repo> = scheduler.createHotObservable([
-            .next(30, selected)
-        ]).asObservable()
-
-        let output = viewModel.transform(input: .init(username: username, selectedRepo: selectedRepo))
-
-        let observer = scheduler.createObserver(Repo.self)
-
-        // when
-        output.openRepoDetails
-            .subscribe(observer)
-            .disposed(by: disposeBag)
-
-        scheduler.start()
-
-        // then
-        let values = observer.events.compactMap { $0.value.element }
-        XCTAssertEqual(values, [selected])
-    }
 }
