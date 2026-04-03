@@ -55,6 +55,7 @@ final class RepoDetailsViewModelTests: XCTestCase {
         XCTAssertEqual(state.title, "Repository")
         XCTAssertEqual(state.subtitle, "Full name unavailable")
         XCTAssertTrue(state.subtitleIsSecondary)
+        XCTAssertNotNil(state.avatarURL)
         XCTAssertEqual(state.descriptionText, "No description provided.")
         XCTAssertTrue(state.descriptionIsSecondary)
         XCTAssertEqual(state.languageText, "Not specified")
@@ -91,6 +92,7 @@ final class RepoDetailsViewModelTests: XCTestCase {
         XCTAssertEqual(state.title, "GithubSearch")
         XCTAssertEqual(state.subtitle, "urszula/GithubSearch")
         XCTAssertFalse(state.subtitleIsSecondary)
+        XCTAssertEqual(state.avatarURL, URL(string: "https://avatars.githubusercontent.com/u/1?v=4"))
         XCTAssertEqual(state.descriptionText, "Search repositories by user.")
         XCTAssertFalse(state.descriptionIsSecondary)
         XCTAssertEqual(state.languageText, "Swift")
@@ -119,5 +121,26 @@ final class RepoDetailsViewModelTests: XCTestCase {
 
         let emittedURLs = observer.events.compactMap(\.value.element)
         XCTAssertEqual(emittedURLs, [repoURL, repoURL])
+    }
+
+    func test_state_exposesNilAvatarURLWhenOwnerAvatarIsUnavailable() throws {
+        let repo = Repo.mock(owner: .init(avatarUrl: nil))
+        let viewModel = RepoDetailsViewModel(repo: repo)
+
+        let output = viewModel.transform(input: .init(
+            openOnGitHubTapped: scheduler.createHotObservable([Recorded<Event<Void>>]())
+                .asSignal(onErrorSignalWith: .empty())
+        ))
+
+        let observer = scheduler.createObserver(RepoDetailsViewModel.State.self)
+
+        output.state
+            .drive(observer)
+            .disposed(by: disposeBag)
+
+        scheduler.start()
+
+        let state = try XCTUnwrap(observer.events.compactMap(\.value.element).last)
+        XCTAssertNil(state.avatarURL)
     }
 }

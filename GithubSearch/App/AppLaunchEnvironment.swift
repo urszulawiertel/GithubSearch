@@ -47,7 +47,8 @@ private final class UITestGitHubService: GitHubServiceType {
                     description: "UI test repository for the main search flow.",
                     stargazersCount: 42,
                     language: "Swift",
-                    htmlUrl: URL(string: "https://github.com/\(username)/ios-github-search")!
+                    htmlUrl: URL(string: "https://github.com/\(username)/ios-github-search")!,
+                    owner: nil
                 )
             ])
         case .empty:

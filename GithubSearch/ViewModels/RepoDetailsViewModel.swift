@@ -28,6 +28,7 @@ final class RepoDetailsViewModel {
         let title: String
         let subtitle: String
         let subtitleIsSecondary: Bool
+        let avatarURL: URL?
         let descriptionText: String
         let descriptionIsSecondary: Bool
         let languageText: String
@@ -59,6 +60,7 @@ final class RepoDetailsViewModel {
             title: title,
             subtitle: subtitle,
             subtitleIsSecondary: subtitle == Constants.subtitleFallback,
+            avatarURL: repo.owner?.avatarUrl,
             descriptionText: description,
             descriptionIsSecondary: description == Constants.descriptionFallback,
             languageText: language,

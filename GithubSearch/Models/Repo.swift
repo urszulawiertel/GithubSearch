@@ -7,6 +7,14 @@
 
 import Foundation
 
+struct RepoOwner: Decodable, Equatable {
+    let avatarUrl: URL?
+
+    enum CodingKeys: String, CodingKey {
+        case avatarUrl = "avatar_url"
+    }
+}
+
 struct Repo: Decodable, Equatable {
     let id: Int
     let name: String
@@ -15,6 +23,7 @@ struct Repo: Decodable, Equatable {
     let stargazersCount: Int
     let language: String?
     let htmlUrl: URL
+    let owner: RepoOwner?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -24,5 +33,6 @@ struct Repo: Decodable, Equatable {
         case stargazersCount = "stargazers_count"
         case language
         case htmlUrl = "html_url"
+        case owner
     }
 }

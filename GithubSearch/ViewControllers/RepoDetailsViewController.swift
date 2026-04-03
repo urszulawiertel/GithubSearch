@@ -13,14 +13,23 @@ import SafariServices
 
 final class RepoDetailsViewController: UIViewController {
 
+    private enum Constants {
+        static let contentInset: CGFloat = 16
+        static let avatarSize: CGFloat = 56
+        static let avatarCornerRadius: CGFloat = 12
+    }
+
     private let disposeBag = DisposeBag()
     private let viewModel: RepoDetailsViewModel
+    private var avatarTask: URLSessionDataTask?
     var onFinish: (() -> Void)?
 
     // MARK: - UI
 
     private let scrollView = UIScrollView()
     private let contentView = UIView()
+    private let headerView = UIView()
+    private let avatarImageView = UIImageView()
 
     fileprivate let titleLabel = UILabel()
     fileprivate let subtitleLabel = UILabel()
@@ -66,14 +75,20 @@ final class RepoDetailsViewController: UIViewController {
         }
     }
 
+    deinit {
+        avatarTask?.cancel()
+    }
+
     // MARK: - Setup
 
     private func setupHierarchy() {
         view.addSubview(scrollView)
         scrollView.addSubview(contentView)
 
-        contentView.addSubview(titleLabel)
-        contentView.addSubview(subtitleLabel)
+        contentView.addSubview(headerView)
+        headerView.addSubview(avatarImageView)
+        headerView.addSubview(titleLabel)
+        headerView.addSubview(subtitleLabel)
         contentView.addSubview(descriptionLabel)
 
         contentView.addSubview(languageTitleLabel)
@@ -95,52 +110,84 @@ final class RepoDetailsViewController: UIViewController {
             $0.width.equalTo(scrollView.snp.width)
         }
 
+        setupHeaderLayout()
+
+        descriptionLabel.snp.makeConstraints {
+            $0.top.equalTo(headerView.snp.bottom).offset(12)
+            $0.leading.trailing.equalToSuperview().inset(Constants.contentInset)
+        }
+
+        setupMetadataLayout()
+    }
+
+    private func setupHeaderLayout() {
+        headerView.snp.makeConstraints {
+            $0.top.equalToSuperview().inset(Constants.contentInset)
+            $0.leading.trailing.equalToSuperview().inset(Constants.contentInset)
+        }
+
+        avatarImageView.snp.makeConstraints {
+            $0.top.leading.bottom.equalToSuperview()
+            $0.size.equalTo(Constants.avatarSize)
+        }
+
         titleLabel.snp.makeConstraints {
-            $0.top.equalToSuperview().inset(16)
-            $0.leading.trailing.equalToSuperview().inset(16)
+            $0.top.equalTo(headerView)
+            $0.leading.equalTo(avatarImageView.snp.trailing).offset(12)
+            $0.trailing.equalToSuperview()
         }
 
         subtitleLabel.snp.makeConstraints {
             $0.top.equalTo(titleLabel.snp.bottom).offset(6)
-            $0.leading.trailing.equalToSuperview().inset(16)
+            $0.leading.trailing.equalTo(titleLabel)
+            $0.bottom.lessThanOrEqualToSuperview()
         }
+    }
 
-        descriptionLabel.snp.makeConstraints {
-            $0.top.equalTo(subtitleLabel.snp.bottom).offset(12)
-            $0.leading.trailing.equalToSuperview().inset(16)
-        }
-
+    private func setupMetadataLayout() {
         languageTitleLabel.snp.makeConstraints {
             $0.top.equalTo(descriptionLabel.snp.bottom).offset(16)
-            $0.leading.equalToSuperview().inset(16)
+            $0.leading.equalToSuperview().inset(Constants.contentInset)
         }
 
         languageValueLabel.snp.makeConstraints {
             $0.centerY.equalTo(languageTitleLabel)
             $0.leading.equalTo(languageTitleLabel.snp.trailing).offset(8)
-            $0.trailing.lessThanOrEqualToSuperview().inset(16)
+            $0.trailing.lessThanOrEqualToSuperview().inset(Constants.contentInset)
         }
 
         starsTitleLabel.snp.makeConstraints {
             $0.top.equalTo(languageTitleLabel.snp.bottom).offset(10)
-            $0.leading.equalToSuperview().inset(16)
+            $0.leading.equalToSuperview().inset(Constants.contentInset)
         }
 
         starsValueLabel.snp.makeConstraints {
             $0.centerY.equalTo(starsTitleLabel)
             $0.leading.equalTo(starsTitleLabel.snp.trailing).offset(8)
-            $0.trailing.lessThanOrEqualToSuperview().inset(16)
+            $0.trailing.lessThanOrEqualToSuperview().inset(Constants.contentInset)
         }
 
         openOnGitHubButton.snp.makeConstraints {
             $0.top.equalTo(starsTitleLabel.snp.bottom).offset(18)
-            $0.leading.trailing.equalToSuperview().inset(16)
+            $0.leading.trailing.equalToSuperview().inset(Constants.contentInset)
             $0.height.equalTo(48)
             $0.bottom.equalToSuperview().inset(20)
         }
     }
 
     private func setupStyles() {
+        let avatarSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 28, weight: .regular)
+        avatarImageView.backgroundColor = .secondarySystemBackground
+        avatarImageView.layer.cornerRadius = Constants.avatarCornerRadius
+        avatarImageView.clipsToBounds = true
+        avatarImageView.contentMode = .scaleAspectFill
+        avatarImageView.tintColor = .tertiaryLabel
+        avatarImageView.image = UIImage(
+            systemName: "person.crop.square",
+            withConfiguration: avatarSymbolConfiguration
+        )
+        avatarImageView.accessibilityIdentifier = "repoDetails.avatarImageView"
+
         titleLabel.font = .preferredFont(forTextStyle: .title2)
         titleLabel.numberOfLines = 0
         titleLabel.accessibilityIdentifier = "repoDetails.titleLabel"
@@ -199,6 +246,38 @@ final class RepoDetailsViewController: UIViewController {
             })
             .disposed(by: disposeBag)
     }
+
+    fileprivate func updateAvatarImage(with url: URL?) {
+        avatarTask?.cancel()
+        avatarTask = nil
+        setAvatarPlaceholder()
+
+        guard let url else { return }
+
+        let request = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 30)
+        avatarTask = URLSession.shared.dataTask(with: request) { [weak self] data, _, _ in
+            guard
+                let self,
+                let data,
+                let image = UIImage(data: data)
+            else {
+                return
+            }
+
+            DispatchQueue.main.async {
+                self.avatarImageView.image = image
+            }
+        }
+        avatarTask?.resume()
+    }
+
+    private func setAvatarPlaceholder() {
+        let avatarSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 28, weight: .regular)
+        avatarImageView.image = UIImage(
+            systemName: "person.crop.square",
+            withConfiguration: avatarSymbolConfiguration
+        )
+    }
 }
 
 // MARK: - Rx Bindings
@@ -209,6 +288,7 @@ private extension Reactive where Base: RepoDetailsViewController {
             viewController.titleLabel.text = state.title
             viewController.subtitleLabel.text = state.subtitle
             viewController.subtitleLabel.textColor = state.subtitleIsSecondary ? .tertiaryLabel : .secondaryLabel
+            viewController.updateAvatarImage(with: state.avatarURL)
 
             viewController.descriptionLabel.text = state.descriptionText
             viewController.descriptionLabel.textColor = state.descriptionIsSecondary ? .secondaryLabel : .label
