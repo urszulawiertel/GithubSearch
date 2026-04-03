@@ -17,7 +17,7 @@ final class ImageLoaderTests: XCTestCase {
         super.tearDown()
     }
 
-    func test_loadImage_cachesSuccessfulResponses() {
+    func test_loadImage_returnsCachedImageWithoutStartingNewFetch() {
         let loader = makeLoader()
         let url = URL(string: "https://example.com/avatar.png")!
         let imageData = makeImageData()
@@ -43,27 +43,6 @@ final class ImageLoaderTests: XCTestCase {
         }
 
         wait(for: [secondLoad], timeout: 1)
-        XCTAssertEqual(URLProtocolMock.requestCount, 1)
-    }
-
-    func test_loadImage_returnsNilForNonSuccessfulResponses() {
-        let loader = makeLoader()
-        let url = URL(string: "https://example.com/avatar.png")!
-        let imageData = makeImageData()
-        URLProtocolMock.requestHandler = { request in
-            URLProtocolMock.requestCount += 1
-            let response = HTTPURLResponse(url: request.url!, statusCode: 404, httpVersion: nil, headerFields: nil)!
-            return (.success(response, imageData))
-        }
-
-        let completion = expectation(description: "Image load completes with nil")
-
-        loader.loadImage(from: url) { image in
-            XCTAssertNil(image)
-            completion.fulfill()
-        }
-
-        wait(for: [completion], timeout: 1)
         XCTAssertEqual(URLProtocolMock.requestCount, 1)
     }
 
@@ -94,31 +73,74 @@ final class ImageLoaderTests: XCTestCase {
         XCTAssertEqual(URLProtocolMock.requestCount, 1)
     }
 
-    func test_loadImage_doesNotDeliverCachedResultAfterCancellation() {
+    func test_loadImage_cancellationRemovesPendingCompletion() {
         let loader = makeLoader()
         let url = URL(string: "https://example.com/avatar.png")!
         let imageData = makeImageData()
         URLProtocolMock.requestHandler = { request in
             URLProtocolMock.requestCount += 1
             let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
-            return (.success(response, imageData))
+            return (.delayedSuccess(response, imageData))
         }
 
-        let initialLoad = expectation(description: "Initial load")
-        loader.loadImage(from: url) { _ in
-            initialLoad.fulfill()
-        }
-        wait(for: [initialLoad], timeout: 1)
-
-        let cancelledCompletion = expectation(description: "Cancelled cached completion")
+        let cancelledCompletion = expectation(description: "Cancelled completion")
         cancelledCompletion.isInverted = true
+        let activeCompletion = expectation(description: "Active completion")
 
         let task = loader.loadImage(from: url) { _ in
             cancelledCompletion.fulfill()
         }
+        loader.loadImage(from: url) { image in
+            XCTAssertNotNil(image)
+            activeCompletion.fulfill()
+        }
+
         task.cancel()
 
+        wait(for: [activeCompletion], timeout: 1)
         wait(for: [cancelledCompletion], timeout: 0.1)
+        XCTAssertEqual(URLProtocolMock.requestCount, 1)
+    }
+
+    func test_loadImage_returnsNilForNonSuccessfulHTTPResponse() {
+        let loader = makeLoader()
+        let url = URL(string: "https://example.com/avatar.png")!
+        let imageData = makeImageData()
+        URLProtocolMock.requestHandler = { request in
+            URLProtocolMock.requestCount += 1
+            let response = HTTPURLResponse(url: request.url!, statusCode: 404, httpVersion: nil, headerFields: nil)!
+            return (.success(response, imageData))
+        }
+
+        let completion = expectation(description: "Image load completes with nil")
+
+        loader.loadImage(from: url) { image in
+            XCTAssertNil(image)
+            completion.fulfill()
+        }
+
+        wait(for: [completion], timeout: 1)
+        XCTAssertEqual(URLProtocolMock.requestCount, 1)
+    }
+
+    func test_loadImage_returnsNilForInvalidImageData() {
+        let loader = makeLoader()
+        let url = URL(string: "https://example.com/avatar.png")!
+        let invalidData = Data("not an image".utf8)
+        URLProtocolMock.requestHandler = { request in
+            URLProtocolMock.requestCount += 1
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return (.success(response, invalidData))
+        }
+
+        let completion = expectation(description: "Image load completes with nil")
+
+        loader.loadImage(from: url) { image in
+            XCTAssertNil(image)
+            completion.fulfill()
+        }
+
+        wait(for: [completion], timeout: 1)
         XCTAssertEqual(URLProtocolMock.requestCount, 1)
     }
 
