@@ -15,6 +15,7 @@ final class RepoDetailsViewController: UIViewController {
 
     private let disposeBag = DisposeBag()
     private let viewModel: RepoDetailsViewModel
+    var onFinish: (() -> Void)?
 
     // MARK: - UI
 
@@ -55,6 +56,14 @@ final class RepoDetailsViewController: UIViewController {
         setupLayout()
         setupStyles()
         setupBindings()
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+
+        if isMovingFromParent || isBeingDismissed {
+            onFinish?()
+        }
     }
 
     // MARK: - Setup

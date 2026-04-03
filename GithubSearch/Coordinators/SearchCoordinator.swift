@@ -32,7 +32,15 @@ final class SearchCoordinator: NavigationCoordinator {
             navigationController: navigationController,
             repo: repo
         )
+        coordinator.onFinish = { [weak self, weak coordinator] in
+            guard let self, let coordinator else { return }
+            self.removeChildCoordinator(coordinator)
+        }
         childCoordinators.append(coordinator)
         coordinator.start()
+    }
+
+    private func removeChildCoordinator(_ coordinator: Coordinator) {
+        childCoordinators.removeAll { $0 === coordinator }
     }
 }
