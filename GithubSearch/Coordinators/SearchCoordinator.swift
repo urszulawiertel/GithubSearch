@@ -15,7 +15,7 @@ final class SearchCoordinator: NavigationCoordinator {
     private let disposeBag = DisposeBag()
 
     override func start() {
-        let viewModel = SearchViewModel()
+        let viewModel = SearchViewModel(service: AppLaunchEnvironment.makeGitHubService())
         let viewController = SearchViewController(viewModel: viewModel)
 
         viewController.onRepoSelected

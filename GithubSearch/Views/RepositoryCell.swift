@@ -11,6 +11,12 @@ import SnapKit
 final class RepositoryCell: UITableViewCell {
 
     static let reuseID = "RepositoryCell"
+    private enum AccessibilityID {
+        static let cellPrefix = "search.resultCell."
+        static let nameLabel = "search.resultCell.nameLabel"
+        static let descriptionLabel = "search.resultCell.descriptionLabel"
+        static let metadataLabel = "search.resultCell.metadataLabel"
+    }
 
     private let nameLabel: UILabel = {
         let label = UILabel()
@@ -18,6 +24,7 @@ final class RepositoryCell: UITableViewCell {
         label.textColor = .label
         label.numberOfLines = 0
         label.adjustsFontForContentSizeCategory = true
+        label.accessibilityIdentifier = AccessibilityID.nameLabel
         return label
     }()
 
@@ -27,6 +34,7 @@ final class RepositoryCell: UITableViewCell {
         label.textColor = .secondaryLabel
         label.numberOfLines = 0
         label.adjustsFontForContentSizeCategory = true
+        label.accessibilityIdentifier = AccessibilityID.descriptionLabel
         return label
     }()
 
@@ -36,6 +44,7 @@ final class RepositoryCell: UITableViewCell {
         label.textColor = .secondaryLabel
         label.numberOfLines = 0
         label.adjustsFontForContentSizeCategory = true
+        label.accessibilityIdentifier = AccessibilityID.metadataLabel
         return label
     }()
 
@@ -67,6 +76,7 @@ final class RepositoryCell: UITableViewCell {
         metadataLabel.text = nil
         descriptionLabel.isHidden = false
         metadataLabel.isHidden = false
+        accessibilityIdentifier = nil
     }
 
     private func setupUI() {
@@ -85,6 +95,7 @@ final class RepositoryCell: UITableViewCell {
     }
 
     func configure(with repo: Repo) {
+        accessibilityIdentifier = AccessibilityID.cellPrefix + "\(repo.id)"
         nameLabel.text = repo.name
 
         let description = repo.description?.trimmingCharacters(in: .whitespacesAndNewlines)

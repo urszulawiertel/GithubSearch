@@ -14,6 +14,9 @@ final class SearchViewController: UIViewController {
 
     private enum Constants {
         static let estimatedRowHeight: CGFloat = 104
+        static let searchTextFieldAccessibilityIdentifier = "search.usernameField"
+        static let resultsTableAccessibilityIdentifier = "search.resultsTable"
+        static let emptyStateAccessibilityIdentifier = "search.emptyStateLabel"
     }
 
     let onRepoSelected = PublishRelay<Repo>()
@@ -53,6 +56,7 @@ final class SearchViewController: UIViewController {
 
         searchController.obscuresBackgroundDuringPresentation = false
         searchController.searchBar.placeholder = "Enter a GitHub username"
+        searchController.searchBar.searchTextField.accessibilityIdentifier = Constants.searchTextFieldAccessibilityIdentifier
         definesPresentationContext = true
     }
 
@@ -63,11 +67,13 @@ final class SearchViewController: UIViewController {
         resultsTableView.separatorStyle = .singleLine
         resultsTableView.keyboardDismissMode = .onDrag
         resultsTableView.tableFooterView = UIView()
+        resultsTableView.accessibilityIdentifier = Constants.resultsTableAccessibilityIdentifier
 
         emptyStateLabel.numberOfLines = 0
         emptyStateLabel.textAlignment = .center
         emptyStateLabel.textColor = .secondaryLabel
         emptyStateLabel.isHidden = true
+        emptyStateLabel.accessibilityIdentifier = Constants.emptyStateAccessibilityIdentifier
 
         emptyStateLabel.frame = resultsTableView.bounds
         emptyStateLabel.autoresizingMask = [.flexibleWidth, .flexibleHeight]
