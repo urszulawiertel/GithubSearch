@@ -21,7 +21,8 @@ final class RepoDetailsViewController: UIViewController {
 
     private let disposeBag = DisposeBag()
     private let viewModel: RepoDetailsViewModel
-    private var avatarTask: URLSessionDataTask?
+    private let imageLoader: ImageLoading
+    private var avatarTask: ImageLoadingTask?
     var onFinish: (() -> Void)?
 
     // MARK: - UI
@@ -45,8 +46,9 @@ final class RepoDetailsViewController: UIViewController {
 
     // MARK: - Init
 
-    init(viewModel: RepoDetailsViewModel) {
+    init(viewModel: RepoDetailsViewModel, imageLoader: ImageLoading = ImageLoader.shared) {
         self.viewModel = viewModel
+        self.imageLoader = imageLoader
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -254,21 +256,10 @@ final class RepoDetailsViewController: UIViewController {
 
         guard let url else { return }
 
-        let request = URLRequest(url: url, cachePolicy: .returnCacheDataElseLoad, timeoutInterval: 30)
-        avatarTask = URLSession.shared.dataTask(with: request) { [weak self] data, _, _ in
-            guard
-                let self,
-                let data,
-                let image = UIImage(data: data)
-            else {
-                return
-            }
-
-            DispatchQueue.main.async {
-                self.avatarImageView.image = image
-            }
+        avatarTask = imageLoader.loadImage(from: url) { [weak self] image in
+            guard let self, let image else { return }
+            self.avatarImageView.image = image
         }
-        avatarTask?.resume()
     }
 
     private func setAvatarPlaceholder() {
