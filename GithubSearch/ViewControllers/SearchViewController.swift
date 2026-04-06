@@ -99,11 +99,13 @@ final class SearchViewController: UIViewController {
     }
 
     private func setupBindings() {
+        let loadNextPageRelay = PublishRelay<Void>()
         let queryText = searchController.searchBar.rx.text.orEmpty
             .asObservable()
 
         let input = SearchViewModel.Input(
-            username: queryText
+            username: queryText,
+            loadNextPage: loadNextPageRelay.asObservable()
         )
 
         let output = viewModel.transform(input: input)
@@ -138,6 +140,26 @@ final class SearchViewController: UIViewController {
             .subscribe(onNext: { [weak self] indexPath in
                 self?.resultsTableView.deselectRow(at: indexPath, animated: true)
             })
+            .disposed(by: disposeBag)
+
+        resultsTableView.rx.didScroll
+            .withLatestFrom(output.repos) { [weak self] _, repos -> Void? in
+                guard let self else {
+                    return nil
+                }
+
+                let thresholdOffset = max(
+                    self.resultsTableView.contentSize.height - (self.resultsTableView.bounds.height * 1.5),
+                    0
+                )
+
+                guard self.resultsTableView.contentOffset.y >= thresholdOffset, !repos.isEmpty else {
+                    return nil
+                }
+                return ()
+            }
+            .compactMap { $0 }
+            .bind(to: loadNextPageRelay)
             .disposed(by: disposeBag)
     }
 

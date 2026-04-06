@@ -36,23 +36,26 @@ private final class UITestGitHubService: GitHubServiceType {
         self.scenario = scenario
     }
 
-    func fetchRepos(username: String) -> Single<[Repo]> {
+    func fetchRepos(username: String, page: Int, perPage: Int) -> Single<RepoPage> {
         switch scenario {
         case .success:
-            return .just([
-                Repo(
-                    id: 101,
-                    name: "ios-github-search",
-                    fullName: "\(username)/ios-github-search",
-                    description: "UI test repository for the main search flow.",
-                    stargazersCount: 42,
-                    language: "Swift",
-                    htmlUrl: URL(string: "https://github.com/\(username)/ios-github-search")!,
-                    owner: nil
-                )
-            ])
+            return .just(RepoPage(
+                repos: [
+                    Repo(
+                        id: 101,
+                        name: "ios-github-search",
+                        fullName: "\(username)/ios-github-search",
+                        description: "UI test repository for the main search flow.",
+                        stargazersCount: 42,
+                        language: "Swift",
+                        htmlUrl: URL(string: "https://github.com/\(username)/ios-github-search")!,
+                        owner: nil
+                    )
+                ],
+                hasNextPage: false
+            ))
         case .empty:
-            return .just([])
+            return .just(RepoPage(repos: [], hasNextPage: false))
         }
     }
 }

@@ -11,6 +11,12 @@ import RxCocoa
 
 final class SearchViewModel {
 
+    private enum Constants {
+        static let pageSize = 50
+        static let promptMessage = "Enter a GitHub username"
+        static let emptyMessage = "No public repositories found."
+    }
+
     enum ViewState: Equatable {
         case prompt(String)
         case loading
@@ -21,6 +27,7 @@ final class SearchViewModel {
 
     struct Input {
         let username: Observable<String>
+        let loadNextPage: Observable<Void>
     }
 
     struct Output {
@@ -32,6 +39,7 @@ final class SearchViewModel {
     private let service: GitHubServiceType
     private let scheduler: SchedulerType
     private let debounceInterval: RxTimeInterval
+    private let disposeBag = DisposeBag()
 
     init(
         service: GitHubServiceType = GitHubService(),
@@ -48,15 +56,111 @@ final class SearchViewModel {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .distinctUntilChanged()
             .share(replay: 1, scope: .whileConnected)
-
-        let errorRelay = PublishRelay<String>()
-        let viewState = makeViewState(username: username, errorRelay: errorRelay)
-            .distinctUntilChanged()
+        let debouncedUsername = username
+            .filter { !$0.isEmpty }
+            .debounce(debounceInterval, scheduler: scheduler)
             .share(replay: 1, scope: .whileConnected)
+        let loadNextPage = input.loadNextPage
+
+        let reposRelay = PublishRelay<[Repo]>()
+        let viewStateRelay = PublishRelay<ViewState>()
+        let errorRelay = PublishRelay<String>()
+
+        var currentQuery = ""
+        var currentPage = 0
+        var currentRepos: [Repo] = []
+        var hasMorePages = false
+        var isPageLoadInProgress = false
+
+        func resetPagination() {
+            currentPage = 0
+            currentRepos = []
+            hasMorePages = false
+            isPageLoadInProgress = false
+        }
+
+        func applyLoadedPage(_ response: RepoPage, page: Int, isInitialLoad: Bool) {
+            currentRepos = isInitialLoad ? response.repos : currentRepos + response.repos
+            currentPage = page
+            hasMorePages = response.hasNextPage
+            reposRelay.accept(currentRepos)
+            viewStateRelay.accept(Self.mapReposToState(currentRepos))
+        }
+
+        func loadPage(query: String, page: Int, isInitialLoad: Bool) {
+            isPageLoadInProgress = true
+
+            service.fetchRepos(username: query, page: page, perPage: Constants.pageSize)
+                .observe(on: scheduler)
+                .subscribe(
+                    onSuccess: { response in
+                        guard query == currentQuery else {
+                            return
+                        }
+
+                        isPageLoadInProgress = false
+                        applyLoadedPage(response, page: page, isInitialLoad: isInitialLoad)
+                    },
+                    onFailure: { error in
+                        guard query == currentQuery else {
+                            return
+                        }
+
+                        isPageLoadInProgress = false
+                        errorRelay.accept(Self.mapError(error))
+
+                        if isInitialLoad {
+                            viewStateRelay.accept(.failure)
+                        }
+                    }
+                )
+                .disposed(by: disposeBag)
+        }
+
+        username
+            .subscribe(onNext: { name in
+                guard !name.isEmpty else {
+                    currentQuery = ""
+                    resetPagination()
+                    reposRelay.accept([])
+                    viewStateRelay.accept(.prompt(Constants.promptMessage))
+                    return
+                }
+
+                currentQuery = name
+                resetPagination()
+                reposRelay.accept([])
+                viewStateRelay.accept(.loading)
+            })
+            .disposed(by: disposeBag)
+
+        debouncedUsername
+            .subscribe(onNext: { name in
+                guard currentQuery == name, !isPageLoadInProgress else {
+                    return
+                }
+
+                loadPage(query: name, page: 1, isInitialLoad: true)
+            })
+            .disposed(by: disposeBag)
+
+        loadNextPage
+            .subscribe(onNext: {
+                guard !currentQuery.isEmpty, hasMorePages, !isPageLoadInProgress else {
+                    return
+                }
+
+                loadPage(query: currentQuery, page: currentPage + 1, isInitialLoad: false)
+            })
+            .disposed(by: disposeBag)
 
         return Output(
-            viewState: viewState,
-            repos: makeReposStream(viewState: viewState),
+            viewState: viewStateRelay
+                .distinctUntilChanged()
+                .asObservable(),
+            repos: reposRelay
+                .distinctUntilChanged()
+                .asObservable(),
             errorMessage: errorRelay.asObservable()
         )
     }
@@ -68,44 +172,9 @@ final class SearchViewModel {
         return "Something went wrong. Please try again."
     }
 
-    private func makeViewState(username: Observable<String>, errorRelay: PublishRelay<String>) -> Observable<ViewState> {
-        username.flatMapLatest { [service, scheduler, debounceInterval] name -> Observable<ViewState> in
-            guard !name.isEmpty else {
-                return .just(.prompt("Enter a GitHub username"))
-            }
-
-            let searchResult = Observable<Int>
-                .timer(debounceInterval, scheduler: scheduler)
-                .flatMapLatest { _ in
-                    service.fetchRepos(username: name)
-                        .asObservable()
-                        .map(Self.mapReposToState)
-                        .catch { error in
-                            errorRelay.accept(Self.mapError(error))
-                            return .just(.failure)
-                        }
-                }
-
-            return Observable.concat(
-                .just(.loading),
-                searchResult
-            )
-        }
-    }
-
-    private func makeReposStream(viewState: Observable<ViewState>) -> Observable<[Repo]> {
-        viewState
-            .map { state in
-                if case let .results(repos) = state {
-                    return repos
-                }
-                return []
-            }
-            .distinctUntilChanged()
-    }
     private static func mapReposToState(_ repos: [Repo]) -> ViewState {
         repos.isEmpty
-            ? .empty("No public repositories found.")
+            ? .empty(Constants.emptyMessage)
             : .results(repos)
     }
 }

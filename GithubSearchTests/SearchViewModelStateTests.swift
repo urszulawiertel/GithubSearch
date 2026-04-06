@@ -30,7 +30,7 @@ final class SearchViewModelStateTests: XCTestCase {
     func test_repos_clearImmediately_whenUsernameChangesToNewNonEmptyValue() {
         let service = GitHubServiceMock()
         let repos = [Repo.mock(name: "Repo1"), Repo.mock(name: "Repo2")]
-        service.stubbedRepos = repos
+        service.stubbedPage = RepoPage(repos: repos, hasNextPage: false)
 
         let viewModel = makeViewModel(service: service)
         let output = viewModel.transform(input: makeInput(usernameEvents: [
@@ -46,13 +46,12 @@ final class SearchViewModelStateTests: XCTestCase {
 
         scheduler.start()
 
-        let values = observer.events.compactMap { $0.value.element }
-        XCTAssertEqual(values, [[], repos, [], repos])
+        XCTAssertEqual(observer.events.compactMap { $0.value.element }, [[], repos, [], repos])
     }
 
     func test_viewState_startsImmediately_withLoading_forNonEmptyQueryChanges() {
         let service = GitHubServiceMock()
-        service.stubbedRepos = [Repo.mock(name: "Repo1")]
+        service.stubbedPage = RepoPage(repos: [Repo.mock(name: "Repo1")], hasNextPage: false)
 
         let viewModel = makeViewModel(service: service)
         let output = viewModel.transform(input: makeInput(usernameEvents: [
@@ -69,8 +68,10 @@ final class SearchViewModelStateTests: XCTestCase {
 
         scheduler.start()
 
-        let values = observer.events.compactMap { $0.value.element }
-        XCTAssertEqual(values, [.loading, .results(service.stubbedRepos), .loading, .results(service.stubbedRepos), .prompt("Enter a GitHub username")])
+        XCTAssertEqual(
+            observer.events.compactMap { $0.value.element },
+            [.loading, .results(service.stubbedPage.repos), .loading, .results(service.stubbedPage.repos), .prompt("Enter a GitHub username")]
+        )
     }
 
     func test_viewState_emitsFailure_andErrorMessage_whenFetchFails() {
@@ -95,17 +96,14 @@ final class SearchViewModelStateTests: XCTestCase {
 
         scheduler.start()
 
-        let states = stateObserver.events.compactMap { $0.value.element }
-        let errors = errorObserver.events.compactMap { $0.value.element }
-
-        XCTAssertEqual(states, [.loading, .failure])
-        XCTAssertEqual(errors, ["We couldn't find that GitHub user."])
+        XCTAssertEqual(stateObserver.events.compactMap { $0.value.element }, [.loading, .failure])
+        XCTAssertEqual(errorObserver.events.compactMap { $0.value.element }, ["We couldn't find that GitHub user."])
     }
 
     func test_repos_clearImmediately_whenUsernameBecomesEmptyString() {
         let service = GitHubServiceMock()
         let repos = [Repo.mock(name: "Repo1"), Repo.mock(name: "Repo2")]
-        service.stubbedRepos = repos
+        service.stubbedPage = RepoPage(repos: repos, hasNextPage: false)
 
         let viewModel = makeViewModel(service: service)
         let output = viewModel.transform(input: makeInput(usernameEvents: [
@@ -121,8 +119,7 @@ final class SearchViewModelStateTests: XCTestCase {
 
         scheduler.start()
 
-        let values = observer.events.compactMap { $0.value.element }
-        XCTAssertEqual(values, [[], repos, []])
+        XCTAssertEqual(observer.events.compactMap { $0.value.element }, [[], repos, []])
     }
 
     private func makeViewModel(service: GitHubServiceMock) -> SearchViewModel {
@@ -136,6 +133,9 @@ final class SearchViewModelStateTests: XCTestCase {
     private func makeInput(usernameEvents: [Recorded<Event<String>>]) -> SearchViewModel.Input {
         let username = scheduler.createHotObservable(usernameEvents).asObservable()
 
-        return .init(username: username)
+        return .init(
+            username: username,
+            loadNextPage: .empty()
+        )
     }
 }

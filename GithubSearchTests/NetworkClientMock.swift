@@ -33,13 +33,14 @@ final class NetworkClientMock: NetworkClientType {
 extension HTTPURLResponse {
     static func mock(
         url: URL = URL(string: "https://api.github.com/users/octocat/repos")!,
-        statusCode: Int
+        statusCode: Int,
+        headerFields: [String: String]? = nil
     ) -> HTTPURLResponse {
         HTTPURLResponse(
             url: url,
             statusCode: statusCode,
             httpVersion: nil,
-            headerFields: nil
+            headerFields: headerFields
         )!
     }
 }

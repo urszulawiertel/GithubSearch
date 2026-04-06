@@ -8,6 +8,11 @@
 import Foundation
 import RxSwift
 
+struct RepoPage: Equatable {
+    let repos: [Repo]
+    let hasNextPage: Bool
+}
+
 enum GitHubServiceError: Error, Equatable {
     case invalidURL
     case userNotFound
@@ -33,7 +38,7 @@ enum GitHubServiceError: Error, Equatable {
 }
 
 protocol GitHubServiceType {
-    func fetchRepos(username: String) -> Single<[Repo]>
+    func fetchRepos(username: String, page: Int, perPage: Int) -> Single<RepoPage>
 }
 
 final class GitHubService: GitHubServiceType {
@@ -47,9 +52,9 @@ final class GitHubService: GitHubServiceType {
         self.decoder = decoder
     }
 
-    func fetchRepos(username: String) -> Single<[Repo]> {
+    func fetchRepos(username: String, page: Int, perPage: Int) -> Single<RepoPage> {
         let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = GitHubAPI.reposURL(username: trimmed) else {
+        guard let url = GitHubAPI.reposURL(username: trimmed, page: page, perPage: perPage) else {
             return .error(GitHubServiceError.invalidURL)
         }
 
@@ -60,7 +65,11 @@ final class GitHubService: GitHubServiceType {
                 }
                 do {
                     let repos = try decoder.decode([Repo].self, from: data)
-                    return .just(repos)
+                    let page = RepoPage(
+                        repos: repos,
+                        hasNextPage: Self.hasNextPage(http)
+                    )
+                    return .just(page)
                 } catch {
                     return .error(GitHubServiceError.decoding)
                 }
@@ -86,6 +95,14 @@ final class GitHubService: GitHubServiceType {
         default:
             return .unknown
         }
+    }
+
+    private static func hasNextPage(_ response: HTTPURLResponse) -> Bool {
+        guard let linkHeader = response.value(forHTTPHeaderField: "Link") else {
+            return false
+        }
+
+        return linkHeader.contains("rel=\"next\"")
     }
 
     private static func isConnectivityError(_ error: URLError) -> Bool {

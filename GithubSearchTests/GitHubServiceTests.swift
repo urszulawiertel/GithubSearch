@@ -14,7 +14,7 @@ final class GitHubServiceTests: XCTestCase {
     func test_fetchRepos_decodesRepositoriesOnSuccessfulResponse() throws {
         let client = NetworkClientMock()
         let service = GitHubService(client: client)
-        let url = try XCTUnwrap(GitHubAPI.reposURL(username: "octocat"))
+        let url = try XCTUnwrap(GitHubAPI.reposURL(username: "octocat", page: 2, perPage: 25))
         let data = """
         [
           {
@@ -32,26 +32,31 @@ final class GitHubServiceTests: XCTestCase {
           }
         ]
         """.data(using: .utf8)!
-        client.stubbedResult = .success((.mock(url: url, statusCode: 200), data))
+        client.stubbedResult = .success((.mock(url: url, statusCode: 200, headerFields: [
+            "Link": #"<https://api.github.com/users/octocat/repos?page=3&per_page=25>; rel="next""#
+        ]), data))
 
-        let repos = try service.fetchRepos(username: " octocat ")
+        let page = try service.fetchRepos(username: " octocat ", page: 2, perPage: 25)
             .toBlocking(timeout: 1)
             .single()
 
         XCTAssertEqual(client.getCallCount, 1)
         XCTAssertEqual(client.lastURL, url)
-        XCTAssertEqual(repos, [
-            Repo.mock(
-                id: 1,
-                name: "Hello-World",
-                fullName: "octocat/Hello-World",
-                description: "Example repository",
-                stargazersCount: 42,
-                language: "Swift",
-                htmlUrl: URL(string: "https://github.com/octocat/Hello-World")!,
-                owner: RepoOwner(login: "octocat", avatarUrl: URL(string: "https://avatars.githubusercontent.com/u/583231?v=4"))
-            )
-        ])
+        XCTAssertEqual(page, RepoPage(
+            repos: [
+                Repo.mock(
+                    id: 1,
+                    name: "Hello-World",
+                    fullName: "octocat/Hello-World",
+                    description: "Example repository",
+                    stargazersCount: 42,
+                    language: "Swift",
+                    htmlUrl: URL(string: "https://github.com/octocat/Hello-World")!,
+                    owner: RepoOwner(login: "octocat", avatarUrl: URL(string: "https://avatars.githubusercontent.com/u/583231?v=4"))
+                )
+            ],
+            hasNextPage: true
+        ))
     }
 
     func test_fetchRepos_returnsDecodingErrorForInvalidPayload() {
@@ -61,12 +66,25 @@ final class GitHubServiceTests: XCTestCase {
         client.stubbedResult = .success((.mock(statusCode: 200), data))
 
         XCTAssertThrowsError(
-            try service.fetchRepos(username: "octocat")
+            try service.fetchRepos(username: "octocat", page: 1, perPage: 50)
                 .toBlocking(timeout: 1)
                 .single()
         ) { error in
             XCTAssertEqual(error as? GitHubServiceError, .decoding)
         }
+    }
+
+    func test_fetchRepos_marksNoNextPageWhenLinkHeaderIsMissing() throws {
+        let client = NetworkClientMock()
+        let service = GitHubService(client: client)
+        let data = "[]".data(using: .utf8)!
+        client.stubbedResult = .success((.mock(statusCode: 200), data))
+
+        let page = try service.fetchRepos(username: "octocat", page: 1, perPage: 50)
+            .toBlocking(timeout: 1)
+            .single()
+
+        XCTAssertFalse(page.hasNextPage)
     }
 
     func test_fetchRepos_maps404ToUserNotFound() {
@@ -75,7 +93,7 @@ final class GitHubServiceTests: XCTestCase {
         client.stubbedResult = .success((.mock(statusCode: 404), Data()))
 
         XCTAssertThrowsError(
-            try service.fetchRepos(username: "missing-user")
+            try service.fetchRepos(username: "missing-user", page: 1, perPage: 50)
                 .toBlocking(timeout: 1)
                 .single()
         ) { error in
@@ -89,7 +107,7 @@ final class GitHubServiceTests: XCTestCase {
         client.stubbedResult = .failure(URLError(.notConnectedToInternet))
 
         XCTAssertThrowsError(
-            try service.fetchRepos(username: "octocat")
+            try service.fetchRepos(username: "octocat", page: 1, perPage: 50)
                 .toBlocking(timeout: 1)
                 .single()
         ) { error in
@@ -103,7 +121,7 @@ final class GitHubServiceTests: XCTestCase {
         client.stubbedResult = .failure(URLError(.badServerResponse))
 
         XCTAssertThrowsError(
-            try service.fetchRepos(username: "octocat")
+            try service.fetchRepos(username: "octocat", page: 1, perPage: 50)
                 .toBlocking(timeout: 1)
                 .single()
         ) { error in

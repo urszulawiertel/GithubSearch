@@ -8,13 +8,18 @@
 import Foundation
 
 enum GitHubAPI {
-    static func reposURL(username: String) -> URL? {
+    static func reposURL(
+        username: String,
+        page: Int = 1,
+        perPage: Int = 50
+    ) -> URL? {
         var components = URLComponents()
         components.scheme = "https"
         components.host = "api.github.com"
         components.path = "/users/\(username)/repos"
         components.queryItems = [
-            URLQueryItem(name: "per_page", value: "50"),
+            URLQueryItem(name: "page", value: String(page)),
+            URLQueryItem(name: "per_page", value: String(perPage)),
             URLQueryItem(name: "sort", value: "updated")
         ]
         return components.url
