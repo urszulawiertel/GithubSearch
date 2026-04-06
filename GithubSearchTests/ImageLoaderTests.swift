@@ -144,6 +144,17 @@ final class ImageLoaderTests: XCTestCase {
         XCTAssertEqual(URLProtocolMock.requestCount, 1)
     }
 
+    func test_supportsImageResponse_returnsFalseForNonImageMIMEType() {
+        let response = URLResponse(
+            url: URL(string: "https://example.com/avatar.png")!,
+            mimeType: "text/plain",
+            expectedContentLength: 4,
+            textEncodingName: nil
+        )
+
+        XCTAssertFalse(ImageLoader.supportsImageResponse(response))
+    }
+
     private func makeLoader() -> ImageLoader {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [URLProtocolMock.self]
@@ -164,8 +175,8 @@ final class ImageLoaderTests: XCTestCase {
 private final class URLProtocolMock: URLProtocol {
 
     enum StubbedResponse {
-        case success(HTTPURLResponse, Data)
-        case delayedSuccess(HTTPURLResponse, Data)
+        case success(URLResponse, Data)
+        case delayedSuccess(URLResponse, Data)
     }
 
     static var requestHandler: ((URLRequest) -> StubbedResponse)?

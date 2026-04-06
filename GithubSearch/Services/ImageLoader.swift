@@ -90,11 +90,7 @@ final class ImageLoader: ImageLoading {
 
     private func validatedImage(data: Data?, response: URLResponse?, error: Error?) -> UIImage? {
         guard error == nil else { return nil }
-
-        if let httpResponse = response as? HTTPURLResponse,
-           !(200..<300).contains(httpResponse.statusCode) {
-            return nil
-        }
+        guard Self.supportsImageResponse(response) else { return nil }
 
         guard let data, !data.isEmpty else { return nil }
         return UIImage(data: data)
@@ -120,6 +116,42 @@ final class ImageLoader: ImageLoading {
         inFlightRequests[url] = request
         lock.unlock()
     }
+
+    static func supportsImageResponse(_ response: URLResponse?) -> Bool {
+        if let mimeType = response?.mimeType?.lowercased(),
+           !mimeType.isEmpty,
+           !mimeType.hasPrefix("image/") {
+            return false
+        }
+
+        if let httpResponse = response as? HTTPURLResponse {
+            guard (200..<300).contains(httpResponse.statusCode) else {
+                return false
+            }
+
+            if let mimeType = resolvedMIMEType(from: httpResponse),
+               !mimeType.hasPrefix("image/") {
+                return false
+            }
+        }
+
+        return true
+    }
+
+    private static func resolvedMIMEType(from response: HTTPURLResponse) -> String? {
+        if let mimeType = response.mimeType?.lowercased(), !mimeType.isEmpty {
+            return mimeType
+        }
+
+        guard let contentType = response.value(forHTTPHeaderField: "Content-Type")?.lowercased() else {
+            return nil
+        }
+
+        return contentType
+            .split(separator: ";", maxSplits: 1, omittingEmptySubsequences: true)
+            .first
+            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+    }
 }
 
 private extension ImageLoader {
@@ -133,6 +165,7 @@ private extension ImageLoader {
         private let lock = NSLock()
         private var onCancel: (() -> Void)?
         private var isCancelled = false
+        private var isCompleted = false
 
         init(completion: @escaping (UIImage?) -> Void) {
             self.completion = completion
@@ -142,12 +175,13 @@ private extension ImageLoader {
             let onCancel: (() -> Void)?
 
             lock.lock()
-            guard !isCancelled else {
+            guard !isCancelled, !isCompleted else {
                 lock.unlock()
                 return
             }
             isCancelled = true
             onCancel = self.onCancel
+            self.onCancel = nil
             lock.unlock()
 
             onCancel?()
@@ -155,7 +189,7 @@ private extension ImageLoader {
 
         func setOnCancel(_ onCancel: @escaping () -> Void) {
             lock.lock()
-            guard !isCancelled else {
+            guard !isCancelled, !isCompleted else {
                 lock.unlock()
                 return
             }
@@ -171,10 +205,14 @@ private extension ImageLoader {
 
         func completeOnMain(with image: UIImage?) {
             lock.lock()
-            let shouldComplete = !isCancelled
+            guard !isCancelled, !isCompleted else {
+                lock.unlock()
+                return
+            }
+            isCompleted = true
+            onCancel = nil
             lock.unlock()
 
-            guard shouldComplete else { return }
             completion(image)
         }
     }

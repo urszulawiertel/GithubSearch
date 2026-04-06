@@ -23,6 +23,7 @@ final class RepoDetailsViewController: UIViewController {
     private let viewModel: RepoDetailsViewModel
     private let imageLoader: ImageLoading
     private var avatarTask: ImageLoadingTask?
+    private var currentAvatarURL: URL?
     var onFinish: (() -> Void)?
 
     // MARK: - UI
@@ -178,16 +179,12 @@ final class RepoDetailsViewController: UIViewController {
     }
 
     private func setupStyles() {
-        let avatarSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 28, weight: .regular)
         avatarImageView.backgroundColor = .secondarySystemBackground
         avatarImageView.layer.cornerRadius = Constants.avatarCornerRadius
         avatarImageView.clipsToBounds = true
-        avatarImageView.contentMode = .scaleAspectFill
         avatarImageView.tintColor = .tertiaryLabel
-        avatarImageView.image = UIImage(
-            systemName: "person.crop.square",
-            withConfiguration: avatarSymbolConfiguration
-        )
+        avatarImageView.isAccessibilityElement = true
+        setAvatarPlaceholder()
         avatarImageView.accessibilityIdentifier = "repoDetails.avatarImageView"
 
         titleLabel.font = .preferredFont(forTextStyle: .title2)
@@ -249,25 +246,56 @@ final class RepoDetailsViewController: UIViewController {
             .disposed(by: disposeBag)
     }
 
-    fileprivate func updateAvatarImage(with url: URL?) {
+    fileprivate func updateAvatarImage(with url: URL?, accessibilityLabel: String) {
+        avatarImageView.accessibilityLabel = accessibilityLabel
+
+        guard currentAvatarURL != url else { return }
+
         avatarTask?.cancel()
         avatarTask = nil
+        currentAvatarURL = url
         setAvatarPlaceholder()
 
         guard let url else { return }
 
         avatarTask = imageLoader.loadImage(from: url) { [weak self] image in
-            guard let self, let image else { return }
-            self.avatarImageView.image = image
+            guard let self, self.currentAvatarURL == url else { return }
+
+            defer { self.avatarTask = nil }
+
+            guard let image else {
+                self.setAvatarPlaceholder()
+                return
+            }
+
+            AvatarImagePresenter.applyLoadedImage(image, to: self.avatarImageView)
         }
     }
 
     private func setAvatarPlaceholder() {
-        let avatarSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 28, weight: .regular)
-        avatarImageView.image = UIImage(
-            systemName: "person.crop.square",
-            withConfiguration: avatarSymbolConfiguration
+        AvatarImagePresenter.applyPlaceholder(
+            to: avatarImageView,
+            symbolName: "person.crop.square",
+            pointSize: 28,
+            weight: .regular
         )
+    }
+
+    fileprivate func avatarAccessibilityLabel(for state: RepoDetailsViewModel.State) -> String {
+        guard !state.subtitleIsSecondary else {
+            return "Repository owner avatar"
+        }
+
+        let ownerName = state.subtitle
+            .split(separator: "/", maxSplits: 1, omittingEmptySubsequences: true)
+            .first
+            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+
+        guard let ownerName, !ownerName.isEmpty else {
+            return "Repository owner avatar"
+        }
+
+        return "Avatar for \(ownerName)"
     }
 }
 
@@ -279,7 +307,10 @@ private extension Reactive where Base: RepoDetailsViewController {
             viewController.titleLabel.text = state.title
             viewController.subtitleLabel.text = state.subtitle
             viewController.subtitleLabel.textColor = state.subtitleIsSecondary ? .tertiaryLabel : .secondaryLabel
-            viewController.updateAvatarImage(with: state.avatarURL)
+            viewController.updateAvatarImage(
+                with: state.avatarURL,
+                accessibilityLabel: viewController.avatarAccessibilityLabel(for: state)
+            )
 
             viewController.descriptionLabel.text = state.descriptionText
             viewController.descriptionLabel.textColor = state.descriptionIsSecondary ? .secondaryLabel : .label

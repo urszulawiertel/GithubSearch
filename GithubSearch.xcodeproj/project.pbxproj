@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		7499C1012FF23A1100A1C901 /* AppLaunchEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7499C1002FF23A1100A1C901 /* AppLaunchEnvironment.swift */; };
+		749F0C552FF286B90056A1C9 /* AvatarImagePresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 749F0C542FF286B90056A1C9 /* AvatarImagePresenter.swift */; };
 		750C8FCB2FDC2A9000A1C901 /* RepositoryCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 750C8FCA2FDC2A9000A1C901 /* RepositoryCell.swift */; };
 		750F6B152FDC3D6900E9A112 /* RepoDetailsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 750F6B142FDC3D6900E9A112 /* RepoDetailsViewModelTests.swift */; };
 		7510F5742FF264E600C11C44 /* RepositoryCellTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7510F5732FF264E600C11C44 /* RepositoryCellTests.swift */; };
@@ -62,6 +63,7 @@
 		4E53E06399DFED2F523EC26E /* Pods-GithubSearchTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-GithubSearchTests.release.xcconfig"; path = "Target Support Files/Pods-GithubSearchTests/Pods-GithubSearchTests.release.xcconfig"; sourceTree = "<group>"; };
 		59C5EF34541429DC176D3F61 /* Pods_GithubSearchTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_GithubSearchTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		7499C1002FF23A1100A1C901 /* AppLaunchEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLaunchEnvironment.swift; sourceTree = "<group>"; };
+		749F0C542FF286B90056A1C9 /* AvatarImagePresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarImagePresenter.swift; sourceTree = "<group>"; };
 		75018D662F4E045000A88E6D /* RxSwift.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = RxSwift.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		750C8FCA2FDC2A9000A1C901 /* RepositoryCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryCell.swift; sourceTree = "<group>"; };
 		750F6B142FDC3D6900E9A112 /* RepoDetailsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepoDetailsViewModelTests.swift; sourceTree = "<group>"; };
@@ -217,6 +219,7 @@
 			isa = PBXGroup;
 			children = (
 				757F7D662F44FC5C00F16F6E /* ActivityIndicator.swift */,
+				749F0C542FF286B90056A1C9 /* AvatarImagePresenter.swift */,
 				753949782F47714F00E65D87 /* Coordinator.swift */,
 			);
 			path = Shared;
@@ -541,6 +544,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7499C1012FF23A1100A1C901 /* AppLaunchEnvironment.swift in Sources */,
+				749F0C552FF286B90056A1C9 /* AvatarImagePresenter.swift in Sources */,
 				750C8FCB2FDC2A9000A1C901 /* RepositoryCell.swift in Sources */,
 				7539497D2F47722900E65D87 /* SearchCoordinator.swift in Sources */,
 				756D48952F4764800061A2EF /* RepoDetailsViewController.swift in Sources */,

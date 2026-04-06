@@ -55,6 +55,19 @@ final class RepositoryCellTests: XCTestCase {
         XCTAssertEqual(imageLoader.cancelledURLs, [firstURL])
     }
 
+    func test_configure_doesNotRestartAvatarLoadForSameURL() {
+        let imageLoader = ImageLoaderSpy()
+        let cell = RepositoryCell(imageLoader: imageLoader)
+        let url = URL(string: "https://example.com/1.png")!
+        let repo = Repo.mock(id: 1, owner: .init(avatarUrl: url))
+
+        cell.configure(with: repo)
+        cell.configure(with: repo)
+
+        XCTAssertEqual(imageLoader.loadedURLs, [url])
+        XCTAssertTrue(imageLoader.cancelledURLs.isEmpty)
+    }
+
     private func makeImage(color: UIColor) -> UIImage {
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: 4, height: 4))
         return renderer.image { context in

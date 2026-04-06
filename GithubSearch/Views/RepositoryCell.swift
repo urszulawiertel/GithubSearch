@@ -176,6 +176,8 @@ final class RepositoryCell: UITableViewCell {
     }
 
     private func loadAvatar(from url: URL?) {
+        guard currentAvatarURL != url else { return }
+
         avatarTask?.cancel()
         avatarTask = nil
         currentAvatarURL = url
@@ -186,23 +188,22 @@ final class RepositoryCell: UITableViewCell {
         avatarTask = imageLoader.loadImage(from: url) { [weak self] image in
             guard let self, self.currentAvatarURL == url else { return }
 
+            defer { self.avatarTask = nil }
+
             if let image {
-                self.avatarImageView.contentMode = .scaleAspectFill
-                self.avatarImageView.image = image
+                AvatarImagePresenter.applyLoadedImage(image, to: self.avatarImageView)
             } else {
                 self.applyAvatarPlaceholder()
             }
-
-            self.avatarTask = nil
         }
     }
 
     private func applyAvatarPlaceholder() {
-        let configuration = UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)
-        avatarImageView.contentMode = .center
-        avatarImageView.image = UIImage(
-            systemName: "person.crop.circle.fill",
-            withConfiguration: configuration
+        AvatarImagePresenter.applyPlaceholder(
+            to: avatarImageView,
+            symbolName: "person.crop.circle.fill",
+            pointSize: 16,
+            weight: .medium
         )
     }
 }
