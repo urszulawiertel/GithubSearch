@@ -37,7 +37,7 @@ extension Repo {
         stargazersCount: Int = 0,
         language: String? = "Swift",
         htmlUrl: URL = URL(string: "https://github.com/owner/Repo")!,
-        owner: RepoOwner? = RepoOwner(avatarUrl: URL(string: "https://avatars.githubusercontent.com/u/1?v=4"))
+        owner: RepoOwner? = RepoOwner(login: "owner", avatarUrl: URL(string: "https://avatars.githubusercontent.com/u/1?v=4"))
     ) -> Repo {
         Repo(
             id: id,

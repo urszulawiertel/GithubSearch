@@ -8,9 +8,11 @@
 import Foundation
 
 struct RepoOwner: Decodable, Equatable {
+    let login: String
     let avatarUrl: URL?
 
     enum CodingKeys: String, CodingKey {
+        case login
         case avatarUrl = "avatar_url"
     }
 }

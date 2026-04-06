@@ -26,6 +26,7 @@ final class GitHubServiceTests: XCTestCase {
             "language": "Swift",
             "html_url": "https://github.com/octocat/Hello-World",
             "owner": {
+              "login": "octocat",
               "avatar_url": "https://avatars.githubusercontent.com/u/583231?v=4"
             }
           }
@@ -48,7 +49,7 @@ final class GitHubServiceTests: XCTestCase {
                 stargazersCount: 42,
                 language: "Swift",
                 htmlUrl: URL(string: "https://github.com/octocat/Hello-World")!,
-                owner: RepoOwner(avatarUrl: URL(string: "https://avatars.githubusercontent.com/u/583231?v=4"))
+                owner: RepoOwner(login: "octocat", avatarUrl: URL(string: "https://avatars.githubusercontent.com/u/583231?v=4"))
             )
         ])
     }

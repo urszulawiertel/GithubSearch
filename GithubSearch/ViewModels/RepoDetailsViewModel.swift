@@ -63,7 +63,7 @@ final class RepoDetailsViewModel {
             subtitle: subtitle,
             subtitleIsSecondary: subtitle == Constants.subtitleFallback,
             avatarURL: repo.owner?.avatarUrl,
-            avatarAccessibilityLabel: Self.avatarAccessibilityLabel(fullName: repo.fullName),
+            avatarAccessibilityLabel: Self.avatarAccessibilityLabel(login: repo.owner?.login),
             descriptionText: description,
             descriptionIsSecondary: description == Constants.descriptionFallback,
             languageText: language,
@@ -100,18 +100,11 @@ final class RepoDetailsViewModel {
         return "★ \(formattedCount)"
     }
 
-    private static func avatarAccessibilityLabel(fullName: String?) -> String {
-        guard
-            let fullName = normalized(fullName),
-            let ownerName = fullName
-                .split(separator: "/", maxSplits: 1, omittingEmptySubsequences: true)
-                .first
-                .map({ String($0).trimmingCharacters(in: .whitespacesAndNewlines) }),
-            !ownerName.isEmpty
-        else {
+    private static func avatarAccessibilityLabel(login: String?) -> String {
+        guard let login = normalized(login) else {
             return Constants.avatarAccessibilityFallback
         }
 
-        return "Avatar for \(ownerName)"
+        return "Avatar for \(login)"
     }
 }

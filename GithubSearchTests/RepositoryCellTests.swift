@@ -14,7 +14,7 @@ final class RepositoryCellTests: XCTestCase {
     func test_configure_startsAvatarLoadForOwnerURL() {
         let imageLoader = ImageLoaderSpy()
         let cell = RepositoryCell(imageLoader: imageLoader)
-        let repo = Repo.mock(owner: .init(avatarUrl: URL(string: "https://example.com/1.png")))
+        let repo = Repo.mock(owner: .init(login: "owner", avatarUrl: URL(string: "https://example.com/1.png")))
 
         cell.configure(with: repo)
 
@@ -25,7 +25,7 @@ final class RepositoryCellTests: XCTestCase {
     func test_prepareForReuse_cancelsAvatarLoadAndRestoresPlaceholder() {
         let imageLoader = ImageLoaderSpy()
         let cell = RepositoryCell(imageLoader: imageLoader)
-        let repo = Repo.mock(owner: .init(avatarUrl: URL(string: "https://example.com/1.png")))
+        let repo = Repo.mock(owner: .init(login: "owner", avatarUrl: URL(string: "https://example.com/1.png")))
 
         cell.configure(with: repo)
         let placeholderImage = cell.displayedAvatarImage
@@ -43,8 +43,8 @@ final class RepositoryCellTests: XCTestCase {
         let firstURL = URL(string: "https://example.com/1.png")!
         let secondURL = URL(string: "https://example.com/2.png")!
 
-        cell.configure(with: Repo.mock(id: 1, owner: .init(avatarUrl: firstURL)))
-        cell.configure(with: Repo.mock(id: 2, owner: .init(avatarUrl: secondURL)))
+        cell.configure(with: Repo.mock(id: 1, owner: .init(login: "owner", avatarUrl: firstURL)))
+        cell.configure(with: Repo.mock(id: 2, owner: .init(login: "owner", avatarUrl: secondURL)))
 
         let secondImage = makeImage(color: .systemBlue)
         imageLoader.completeLoad(for: firstURL, with: makeImage(color: .systemRed))
@@ -59,7 +59,7 @@ final class RepositoryCellTests: XCTestCase {
         let imageLoader = ImageLoaderSpy()
         let cell = RepositoryCell(imageLoader: imageLoader)
         let url = URL(string: "https://example.com/1.png")!
-        let repo = Repo.mock(id: 1, owner: .init(avatarUrl: url))
+        let repo = Repo.mock(id: 1, owner: .init(login: "owner", avatarUrl: url))
 
         cell.configure(with: repo)
         cell.configure(with: repo)

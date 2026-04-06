@@ -34,7 +34,8 @@ final class RepoDetailsViewModelTests: XCTestCase {
             fullName: "",
             description: "  ",
             stargazersCount: 0,
-            language: "\n"
+            language: "\n",
+            owner: .init(login: " \n ", avatarUrl: URL(string: "https://avatars.githubusercontent.com/u/1?v=4"))
         )
         let viewModel = RepoDetailsViewModel(repo: repo)
 
@@ -72,7 +73,8 @@ final class RepoDetailsViewModelTests: XCTestCase {
             fullName: "urszula/GithubSearch",
             description: " Search repositories by user. ",
             stargazersCount: 1200,
-            language: " Swift "
+            language: " Swift ",
+            owner: .init(login: "urszula", avatarUrl: URL(string: "https://avatars.githubusercontent.com/u/1?v=4"))
         )
         let viewModel = RepoDetailsViewModel(repo: repo)
 
@@ -126,7 +128,7 @@ final class RepoDetailsViewModelTests: XCTestCase {
     }
 
     func test_state_exposesNilAvatarURLWhenOwnerAvatarIsUnavailable() throws {
-        let repo = Repo.mock(owner: .init(avatarUrl: nil))
+        let repo = Repo.mock(owner: .init(login: "owner", avatarUrl: nil))
         let viewModel = RepoDetailsViewModel(repo: repo)
 
         let output = viewModel.transform(input: .init(
@@ -145,5 +147,26 @@ final class RepoDetailsViewModelTests: XCTestCase {
         let state = try XCTUnwrap(observer.events.compactMap(\.value.element).last)
         XCTAssertNil(state.avatarURL)
         XCTAssertEqual(state.avatarAccessibilityLabel, "Avatar for owner")
+    }
+
+    func test_state_usesFallbackAvatarLabelWhenOwnerLoginIsBlank() throws {
+        let repo = Repo.mock(owner: .init(login: " \n ", avatarUrl: URL(string: "https://avatars.githubusercontent.com/u/1?v=4")))
+        let viewModel = RepoDetailsViewModel(repo: repo)
+
+        let output = viewModel.transform(input: .init(
+            openOnGitHubTapped: scheduler.createHotObservable([Recorded<Event<Void>>]())
+                .asSignal(onErrorSignalWith: .empty())
+        ))
+
+        let observer = scheduler.createObserver(RepoDetailsViewModel.State.self)
+
+        output.state
+            .drive(observer)
+            .disposed(by: disposeBag)
+
+        scheduler.start()
+
+        let state = try XCTUnwrap(observer.events.compactMap(\.value.element).last)
+        XCTAssertEqual(state.avatarAccessibilityLabel, "Repository owner avatar")
     }
 }
