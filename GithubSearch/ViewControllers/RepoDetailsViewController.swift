@@ -281,22 +281,6 @@ final class RepoDetailsViewController: UIViewController {
         )
     }
 
-    fileprivate func avatarAccessibilityLabel(for state: RepoDetailsViewModel.State) -> String {
-        guard !state.subtitleIsSecondary else {
-            return "Repository owner avatar"
-        }
-
-        let ownerName = state.subtitle
-            .split(separator: "/", maxSplits: 1, omittingEmptySubsequences: true)
-            .first
-            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
-
-        guard let ownerName, !ownerName.isEmpty else {
-            return "Repository owner avatar"
-        }
-
-        return "Avatar for \(ownerName)"
-    }
 }
 
 // MARK: - Rx Bindings
@@ -309,7 +293,7 @@ private extension Reactive where Base: RepoDetailsViewController {
             viewController.subtitleLabel.textColor = state.subtitleIsSecondary ? .tertiaryLabel : .secondaryLabel
             viewController.updateAvatarImage(
                 with: state.avatarURL,
-                accessibilityLabel: viewController.avatarAccessibilityLabel(for: state)
+                accessibilityLabel: state.avatarAccessibilityLabel
             )
 
             viewController.descriptionLabel.text = state.descriptionText

@@ -56,6 +56,7 @@ final class RepoDetailsViewModelTests: XCTestCase {
         XCTAssertEqual(state.subtitle, "Full name unavailable")
         XCTAssertTrue(state.subtitleIsSecondary)
         XCTAssertNotNil(state.avatarURL)
+        XCTAssertEqual(state.avatarAccessibilityLabel, "Repository owner avatar")
         XCTAssertEqual(state.descriptionText, "No description provided.")
         XCTAssertTrue(state.descriptionIsSecondary)
         XCTAssertEqual(state.languageText, "Not specified")
@@ -93,6 +94,7 @@ final class RepoDetailsViewModelTests: XCTestCase {
         XCTAssertEqual(state.subtitle, "urszula/GithubSearch")
         XCTAssertFalse(state.subtitleIsSecondary)
         XCTAssertEqual(state.avatarURL, URL(string: "https://avatars.githubusercontent.com/u/1?v=4"))
+        XCTAssertEqual(state.avatarAccessibilityLabel, "Avatar for urszula")
         XCTAssertEqual(state.descriptionText, "Search repositories by user.")
         XCTAssertFalse(state.descriptionIsSecondary)
         XCTAssertEqual(state.languageText, "Swift")
@@ -142,5 +144,6 @@ final class RepoDetailsViewModelTests: XCTestCase {
 
         let state = try XCTUnwrap(observer.events.compactMap(\.value.element).last)
         XCTAssertNil(state.avatarURL)
+        XCTAssertEqual(state.avatarAccessibilityLabel, "Avatar for owner")
     }
 }

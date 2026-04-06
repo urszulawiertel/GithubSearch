@@ -18,6 +18,7 @@ final class RepoDetailsViewModel {
         static let languageFallback = "Not specified"
         static let noStarsFallback = "No stars yet"
         static let openButtonTitle = "Open on GitHub"
+        static let avatarAccessibilityFallback = "Repository owner avatar"
     }
 
     struct Input {
@@ -29,6 +30,7 @@ final class RepoDetailsViewModel {
         let subtitle: String
         let subtitleIsSecondary: Bool
         let avatarURL: URL?
+        let avatarAccessibilityLabel: String
         let descriptionText: String
         let descriptionIsSecondary: Bool
         let languageText: String
@@ -61,6 +63,7 @@ final class RepoDetailsViewModel {
             subtitle: subtitle,
             subtitleIsSecondary: subtitle == Constants.subtitleFallback,
             avatarURL: repo.owner?.avatarUrl,
+            avatarAccessibilityLabel: Self.avatarAccessibilityLabel(fullName: repo.fullName),
             descriptionText: description,
             descriptionIsSecondary: description == Constants.descriptionFallback,
             languageText: language,
@@ -95,5 +98,20 @@ final class RepoDetailsViewModel {
         formatter.numberStyle = .decimal
         let formattedCount = formatter.string(from: NSNumber(value: count)) ?? "\(count)"
         return "★ \(formattedCount)"
+    }
+
+    private static func avatarAccessibilityLabel(fullName: String?) -> String {
+        guard
+            let fullName = normalized(fullName),
+            let ownerName = fullName
+                .split(separator: "/", maxSplits: 1, omittingEmptySubsequences: true)
+                .first
+                .map({ String($0).trimmingCharacters(in: .whitespacesAndNewlines) }),
+            !ownerName.isEmpty
+        else {
+            return Constants.avatarAccessibilityFallback
+        }
+
+        return "Avatar for \(ownerName)"
     }
 }
