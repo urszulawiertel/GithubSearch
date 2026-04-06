@@ -17,6 +17,26 @@ final class SearchViewModel {
         static let emptyMessage = "No public repositories found."
     }
 
+    private struct SearchState {
+        var currentQuery = ""
+        var currentPage = 0
+        var currentRepos: [Repo] = []
+        var hasMorePages = false
+        var isPageLoadInProgress = false
+    }
+
+    private struct OutputRelays {
+        let repos: PublishRelay<[Repo]>
+        let viewState: PublishRelay<ViewState>
+        let error: PublishRelay<String>
+    }
+
+    private struct PageLoadRequest {
+        let query: String
+        let page: Int
+        let isInitialLoad: Bool
+    }
+
     enum ViewState: Equatable {
         case prompt(String)
         case loading
@@ -60,109 +80,180 @@ final class SearchViewModel {
             .filter { !$0.isEmpty }
             .debounce(debounceInterval, scheduler: scheduler)
             .share(replay: 1, scope: .whileConnected)
-        let loadNextPage = input.loadNextPage
 
-        let reposRelay = PublishRelay<[Repo]>()
-        let viewStateRelay = PublishRelay<ViewState>()
-        let errorRelay = PublishRelay<String>()
+        let relays = OutputRelays(
+            repos: PublishRelay<[Repo]>(),
+            viewState: PublishRelay<ViewState>(),
+            error: PublishRelay<String>()
+        )
 
-        var currentQuery = ""
-        var currentPage = 0
-        var currentRepos: [Repo] = []
-        var hasMorePages = false
-        var isPageLoadInProgress = false
+        var state = SearchState()
 
-        func resetPagination() {
-            currentPage = 0
-            currentRepos = []
-            hasMorePages = false
-            isPageLoadInProgress = false
-        }
+        let getState = { state }
+        let setState = { state = $0 }
 
-        func applyLoadedPage(_ response: RepoPage, page: Int, isInitialLoad: Bool) {
-            currentRepos = isInitialLoad ? response.repos : currentRepos + response.repos
-            currentPage = page
-            hasMorePages = response.hasNextPage
-            reposRelay.accept(currentRepos)
-            viewStateRelay.accept(Self.mapReposToState(currentRepos))
-        }
-
-        func loadPage(query: String, page: Int, isInitialLoad: Bool) {
-            isPageLoadInProgress = true
-
-            service.fetchRepos(username: query, page: page, perPage: Constants.pageSize)
-                .observe(on: scheduler)
-                .subscribe(
-                    onSuccess: { response in
-                        guard query == currentQuery else {
-                            return
-                        }
-
-                        isPageLoadInProgress = false
-                        applyLoadedPage(response, page: page, isInitialLoad: isInitialLoad)
-                    },
-                    onFailure: { error in
-                        guard query == currentQuery else {
-                            return
-                        }
-
-                        isPageLoadInProgress = false
-                        errorRelay.accept(Self.mapError(error))
-
-                        if isInitialLoad {
-                            viewStateRelay.accept(.failure)
-                        }
-                    }
-                )
-                .disposed(by: disposeBag)
-        }
-
-        username
-            .subscribe(onNext: { name in
-                guard !name.isEmpty else {
-                    currentQuery = ""
-                    resetPagination()
-                    reposRelay.accept([])
-                    viewStateRelay.accept(.prompt(Constants.promptMessage))
-                    return
-                }
-
-                currentQuery = name
-                resetPagination()
-                reposRelay.accept([])
-                viewStateRelay.accept(.loading)
-            })
-            .disposed(by: disposeBag)
-
-        debouncedUsername
-            .subscribe(onNext: { name in
-                guard currentQuery == name, !isPageLoadInProgress else {
-                    return
-                }
-
-                loadPage(query: name, page: 1, isInitialLoad: true)
-            })
-            .disposed(by: disposeBag)
-
-        loadNextPage
-            .subscribe(onNext: {
-                guard !currentQuery.isEmpty, hasMorePages, !isPageLoadInProgress else {
-                    return
-                }
-
-                loadPage(query: currentQuery, page: currentPage + 1, isInitialLoad: false)
-            })
-            .disposed(by: disposeBag)
+        bindUsername(username, getState: getState, setState: setState, relays: relays)
+        bindDebouncedUsername(debouncedUsername, getState: getState, setState: setState, relays: relays)
+        bindLoadNextPage(input.loadNextPage, getState: getState, setState: setState, relays: relays)
 
         return Output(
-            viewState: viewStateRelay
+            viewState: relays.viewState
                 .distinctUntilChanged()
                 .asObservable(),
-            repos: reposRelay
+            repos: relays.repos
                 .distinctUntilChanged()
                 .asObservable(),
-            errorMessage: errorRelay.asObservable()
+            errorMessage: relays.error.asObservable()
         )
+    }
+
+    private func bindUsername(
+        _ username: Observable<String>,
+        getState: @escaping () -> SearchState,
+        setState: @escaping (SearchState) -> Void,
+        relays: OutputRelays
+    ) {
+        username
+            .subscribe(onNext: { [weak self] name in
+                guard let self else { return }
+
+                var state = getState()
+
+                guard !name.isEmpty else {
+                    state.currentQuery = ""
+                    self.resetPagination(state: &state)
+                    setState(state)
+                    relays.repos.accept([])
+                    relays.viewState.accept(.prompt(Constants.promptMessage))
+                    return
+                }
+
+                state.currentQuery = name
+                self.resetPagination(state: &state)
+                setState(state)
+                relays.repos.accept([])
+                relays.viewState.accept(.loading)
+            })
+            .disposed(by: disposeBag)
+    }
+
+    private func bindDebouncedUsername(
+        _ debouncedUsername: Observable<String>,
+        getState: @escaping () -> SearchState,
+        setState: @escaping (SearchState) -> Void,
+        relays: OutputRelays
+    ) {
+        debouncedUsername
+            .subscribe(onNext: { [weak self] name in
+                guard let self else { return }
+
+                let state = getState()
+
+                guard state.currentQuery == name, !state.isPageLoadInProgress else {
+                    return
+                }
+
+                self.loadPage(
+                    PageLoadRequest(query: name, page: 1, isInitialLoad: true),
+                    getState: getState,
+                    setState: setState,
+                    relays: relays
+                )
+            })
+            .disposed(by: disposeBag)
+    }
+
+    private func bindLoadNextPage(
+        _ loadNextPage: Observable<Void>,
+        getState: @escaping () -> SearchState,
+        setState: @escaping (SearchState) -> Void,
+        relays: OutputRelays
+    ) {
+        loadNextPage
+            .subscribe(onNext: { [weak self] in
+                guard let self else { return }
+
+                let state = getState()
+
+                guard !state.currentQuery.isEmpty, state.hasMorePages, !state.isPageLoadInProgress else {
+                    return
+                }
+
+                self.loadPage(
+                    PageLoadRequest(
+                        query: state.currentQuery,
+                        page: state.currentPage + 1,
+                        isInitialLoad: false
+                    ),
+                    getState: getState,
+                    setState: setState,
+                    relays: relays
+                )
+            })
+            .disposed(by: disposeBag)
+    }
+
+    private func resetPagination(state: inout SearchState) {
+        state.currentPage = 0
+        state.currentRepos = []
+        state.hasMorePages = false
+        state.isPageLoadInProgress = false
+    }
+
+    private func applyLoadedPage(
+        _ response: RepoPage,
+        request: PageLoadRequest,
+        state: inout SearchState,
+        relays: OutputRelays
+    ) {
+        state.currentRepos = request.isInitialLoad ? response.repos : state.currentRepos + response.repos
+        state.currentPage = request.page
+        state.hasMorePages = response.hasNextPage
+        relays.repos.accept(state.currentRepos)
+        relays.viewState.accept(Self.mapReposToState(state.currentRepos))
+    }
+
+    private func loadPage(
+        _ request: PageLoadRequest,
+        getState: @escaping () -> SearchState,
+        setState: @escaping (SearchState) -> Void,
+        relays: OutputRelays
+    ) {
+        var loadingState = getState()
+        loadingState.isPageLoadInProgress = true
+        setState(loadingState)
+
+        service.fetchRepos(username: request.query, page: request.page, perPage: Constants.pageSize)
+            .observe(on: scheduler)
+            .subscribe(
+                onSuccess: { response in
+                    var state = getState()
+
+                    guard request.query == state.currentQuery else {
+                        return
+                    }
+
+                    state.isPageLoadInProgress = false
+                    self.applyLoadedPage(response, request: request, state: &state, relays: relays)
+                    setState(state)
+                },
+                onFailure: { error in
+                    var state = getState()
+
+                    guard request.query == state.currentQuery else {
+                        return
+                    }
+
+                    state.isPageLoadInProgress = false
+                    setState(state)
+                    relays.error.accept(Self.mapError(error))
+
+                    if request.isInitialLoad {
+                        relays.viewState.accept(.failure)
+                    }
+                }
+            )
+            .disposed(by: disposeBag)
     }
 
     private static func mapError(_ error: Error) -> String {
