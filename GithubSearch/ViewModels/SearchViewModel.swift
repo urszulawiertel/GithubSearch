@@ -60,6 +60,7 @@ final class SearchViewModel {
     private let scheduler: SchedulerType
     private let debounceInterval: RxTimeInterval
     private let disposeBag = DisposeBag()
+    private var state = SearchState()
 
     init(
         service: GitHubServiceType = GitHubService(),
@@ -72,6 +73,8 @@ final class SearchViewModel {
     }
 
     func transform(input: Input) -> Output {
+        state = SearchState()
+
         let username = input.username
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .distinctUntilChanged()
@@ -87,14 +90,9 @@ final class SearchViewModel {
             error: PublishRelay<String>()
         )
 
-        var state = SearchState()
-
-        let getState = { state }
-        let setState = { state = $0 }
-
-        bindUsername(username, getState: getState, setState: setState, relays: relays)
-        bindDebouncedUsername(debouncedUsername, getState: getState, setState: setState, relays: relays)
-        bindLoadNextPage(input.loadNextPage, getState: getState, setState: setState, relays: relays)
+        bindUsername(username, relays: relays)
+        bindDebouncedUsername(debouncedUsername, relays: relays)
+        bindLoadNextPage(input.loadNextPage, relays: relays)
 
         return Output(
             viewState: relays.viewState
@@ -109,28 +107,22 @@ final class SearchViewModel {
 
     private func bindUsername(
         _ username: Observable<String>,
-        getState: @escaping () -> SearchState,
-        setState: @escaping (SearchState) -> Void,
         relays: OutputRelays
     ) {
         username
             .subscribe(onNext: { [weak self] name in
                 guard let self else { return }
 
-                var state = getState()
-
                 guard !name.isEmpty else {
-                    state.currentQuery = ""
-                    self.resetPagination(state: &state)
-                    setState(state)
+                    self.state.currentQuery = ""
+                    self.resetPagination()
                     relays.repos.accept([])
                     relays.viewState.accept(.prompt(Constants.promptMessage))
                     return
                 }
 
-                state.currentQuery = name
-                self.resetPagination(state: &state)
-                setState(state)
+                self.state.currentQuery = name
+                self.resetPagination()
                 relays.repos.accept([])
                 relays.viewState.accept(.loading)
             })
@@ -139,24 +131,18 @@ final class SearchViewModel {
 
     private func bindDebouncedUsername(
         _ debouncedUsername: Observable<String>,
-        getState: @escaping () -> SearchState,
-        setState: @escaping (SearchState) -> Void,
         relays: OutputRelays
     ) {
         debouncedUsername
             .subscribe(onNext: { [weak self] name in
                 guard let self else { return }
 
-                let state = getState()
-
-                guard state.currentQuery == name, !state.isPageLoadInProgress else {
+                guard self.state.currentQuery == name, !self.state.isPageLoadInProgress else {
                     return
                 }
 
                 self.loadPage(
                     PageLoadRequest(query: name, page: 1, isInitialLoad: true),
-                    getState: getState,
-                    setState: setState,
                     relays: relays
                 )
             })
@@ -165,35 +151,29 @@ final class SearchViewModel {
 
     private func bindLoadNextPage(
         _ loadNextPage: Observable<Void>,
-        getState: @escaping () -> SearchState,
-        setState: @escaping (SearchState) -> Void,
         relays: OutputRelays
     ) {
         loadNextPage
             .subscribe(onNext: { [weak self] in
                 guard let self else { return }
 
-                let state = getState()
-
-                guard !state.currentQuery.isEmpty, state.hasMorePages, !state.isPageLoadInProgress else {
+                guard !self.state.currentQuery.isEmpty, self.state.hasMorePages, !self.state.isPageLoadInProgress else {
                     return
                 }
 
                 self.loadPage(
                     PageLoadRequest(
-                        query: state.currentQuery,
-                        page: state.currentPage + 1,
+                        query: self.state.currentQuery,
+                        page: self.state.currentPage + 1,
                         isInitialLoad: false
                     ),
-                    getState: getState,
-                    setState: setState,
                     relays: relays
                 )
             })
             .disposed(by: disposeBag)
     }
 
-    private func resetPagination(state: inout SearchState) {
+    private func resetPagination() {
         state.currentPage = 0
         state.currentRepos = []
         state.hasMorePages = false
@@ -203,7 +183,6 @@ final class SearchViewModel {
     private func applyLoadedPage(
         _ response: RepoPage,
         request: PageLoadRequest,
-        state: inout SearchState,
         relays: OutputRelays
     ) {
         state.currentRepos = request.isInitialLoad ? response.repos : state.currentRepos + response.repos
@@ -215,37 +194,31 @@ final class SearchViewModel {
 
     private func loadPage(
         _ request: PageLoadRequest,
-        getState: @escaping () -> SearchState,
-        setState: @escaping (SearchState) -> Void,
         relays: OutputRelays
     ) {
-        var loadingState = getState()
-        loadingState.isPageLoadInProgress = true
-        setState(loadingState)
+        state.isPageLoadInProgress = true
 
         service.fetchRepos(username: request.query, page: request.page, perPage: Constants.pageSize)
             .observe(on: scheduler)
             .subscribe(
-                onSuccess: { response in
-                    var state = getState()
+                onSuccess: { [weak self] response in
+                    guard let self else { return }
 
-                    guard request.query == state.currentQuery else {
+                    guard request.query == self.state.currentQuery else {
                         return
                     }
 
-                    state.isPageLoadInProgress = false
-                    self.applyLoadedPage(response, request: request, state: &state, relays: relays)
-                    setState(state)
+                    self.state.isPageLoadInProgress = false
+                    self.applyLoadedPage(response, request: request, relays: relays)
                 },
-                onFailure: { error in
-                    var state = getState()
+                onFailure: { [weak self] error in
+                    guard let self else { return }
 
-                    guard request.query == state.currentQuery else {
+                    guard request.query == self.state.currentQuery else {
                         return
                     }
 
-                    state.isPageLoadInProgress = false
-                    setState(state)
+                    self.state.isPageLoadInProgress = false
                     relays.error.accept(Self.mapError(error))
 
                     if request.isInitialLoad {
