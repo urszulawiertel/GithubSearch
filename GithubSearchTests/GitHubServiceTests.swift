@@ -101,6 +101,20 @@ final class GitHubServiceTests: XCTestCase {
         }
     }
 
+    func test_fetchRepos_maps403ToRateLimited() {
+        let client = NetworkClientMock()
+        let service = GitHubService(client: client)
+        client.stubbedResult = .success((.mock(statusCode: 403), Data()))
+
+        XCTAssertThrowsError(
+            try service.fetchRepos(username: "octocat", page: 1, perPage: 50)
+                .toBlocking(timeout: 1)
+                .single()
+        ) { error in
+            XCTAssertEqual(error as? GitHubServiceError, .rateLimited)
+        }
+    }
+
     func test_fetchRepos_mapsConnectivityErrors() {
         let client = NetworkClientMock()
         let service = GitHubService(client: client)
@@ -127,5 +141,20 @@ final class GitHubServiceTests: XCTestCase {
         ) { error in
             XCTAssertEqual(error as? GitHubServiceError, .unknown)
         }
+    }
+
+    func test_fetchRepos_marksNoNextPageWhenLinkHeaderHasNoNextRelation() throws {
+        let client = NetworkClientMock()
+        let service = GitHubService(client: client)
+        let data = "[]".data(using: .utf8)!
+        client.stubbedResult = .success((.mock(statusCode: 200, headerFields: [
+            "Link": #"<https://api.github.com/users/octocat/repos?page=2&per_page=50>; rel="last""#
+        ]), data))
+
+        let page = try service.fetchRepos(username: "octocat", page: 1, perPage: 50)
+            .toBlocking(timeout: 1)
+            .single()
+
+        XCTAssertFalse(page.hasNextPage)
     }
 }

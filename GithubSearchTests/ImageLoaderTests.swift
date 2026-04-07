@@ -144,6 +144,32 @@ final class ImageLoaderTests: XCTestCase {
         XCTAssertEqual(URLProtocolMock.requestCount, 1)
     }
 
+    func test_loadImage_returnsNilForNonImageResponseData() {
+        let loader = makeLoader()
+        let url = URL(string: "https://example.com/avatar.png")!
+        let textData = Data("plain text".utf8)
+        URLProtocolMock.requestHandler = { request in
+            URLProtocolMock.requestCount += 1
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "text/plain"]
+            )!
+            return (.success(response, textData))
+        }
+
+        let completion = expectation(description: "Image load completes with nil for non-image MIME type")
+
+        loader.loadImage(from: url) { image in
+            XCTAssertNil(image)
+            completion.fulfill()
+        }
+
+        wait(for: [completion], timeout: 1)
+        XCTAssertEqual(URLProtocolMock.requestCount, 1)
+    }
+
     func test_supportsImageResponse_returnsFalseForNonImageMIMEType() {
         let response = URLResponse(
             url: URL(string: "https://example.com/avatar.png")!,

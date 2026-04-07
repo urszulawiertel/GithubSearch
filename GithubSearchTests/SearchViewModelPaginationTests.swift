@@ -27,30 +27,12 @@ final class SearchViewModelPaginationTests: XCTestCase {
         super.tearDown()
     }
 
-    func test_firstPageLoad_fetchesPageOne_andEmitsResults() {
-        let service = GitHubServiceMock()
-        let repos = [Repo.mock(name: "Repo1"), Repo.mock(name: "Repo2")]
-        service.stubbedPage = RepoPage(repos: repos, hasNextPage: true)
-
-        let output = makeViewModel(service: service).transform(input: makeInput(usernameEvents: [
-            .next(10, "apple")
-        ]))
-        let observer = scheduler.createObserver([Repo].self)
-
-        output.repos
-            .subscribe(observer)
-            .disposed(by: disposeBag)
-
-        scheduler.start()
-
-        XCTAssertEqual(service.requestedPages, [1])
-        XCTAssertEqual(observer.events.compactMap { $0.value.element }, [[], repos])
-    }
-
     func test_loadNextPage_appendsResults() {
         let service = GitHubServiceMock()
         let firstPageRepos = [Repo.mock(id: 1, name: "Repo1")]
         let secondPageRepos = [Repo.mock(id: 2, name: "Repo2")]
+        let viewModel = makeViewModel(service: service)
+
         service.fetchReposHandler = { _, page, _ in
             switch page {
             case 1:
@@ -62,9 +44,9 @@ final class SearchViewModelPaginationTests: XCTestCase {
             }
         }
 
-        let output = makeViewModel(service: service).transform(input: makeInput(
+        let output = viewModel.transform(input: makeInput(
             usernameEvents: [.next(10, "apple")],
-            loadNextPageEvents: [.next(500, ())]
+            loadNextPageEvents: [.next(700, ())]
         ))
         let observer = scheduler.createObserver([Repo].self)
 
@@ -83,6 +65,8 @@ final class SearchViewModelPaginationTests: XCTestCase {
         let appleRepos = [Repo.mock(id: 1, name: "AppleRepo")]
         let appleSecondPageRepos = [Repo.mock(id: 2, name: "AppleRepo2")]
         let microsoftRepos = [Repo.mock(id: 3, name: "MicrosoftRepo")]
+        let viewModel = makeViewModel(service: service)
+
         service.fetchReposHandler = { username, page, _ in
             switch (username, page) {
             case ("apple", 1):
@@ -96,12 +80,12 @@ final class SearchViewModelPaginationTests: XCTestCase {
             }
         }
 
-        let output = makeViewModel(service: service).transform(input: makeInput(
+        let output = viewModel.transform(input: makeInput(
             usernameEvents: [
                 .next(10, "apple"),
-                .next(800, "microsoft")
+                .next(900, "microsoft")
             ],
-            loadNextPageEvents: [.next(500, ())]
+            loadNextPageEvents: [.next(700, ())]
         ))
         let observer = scheduler.createObserver([Repo].self)
 
@@ -125,7 +109,10 @@ final class SearchViewModelPaginationTests: XCTestCase {
         let service = GitHubServiceMock()
         let firstPageRepos = [Repo.mock(id: 1, name: "Repo1")]
         let secondPageRepos = [Repo.mock(id: 2, name: "Repo2")]
-        service.fetchReposHandler = { [scheduler] _, page, _ in
+        let viewModel = makeViewModel(service: service)
+        let scheduler = self.scheduler!
+
+        service.fetchReposHandler = { _, page, _ in
             switch page {
             case 1:
                 return scheduler.createColdObservable([
@@ -142,11 +129,11 @@ final class SearchViewModelPaginationTests: XCTestCase {
             }
         }
 
-        let output = makeViewModel(service: service).transform(input: makeInput(
+        let output = viewModel.transform(input: makeInput(
             usernameEvents: [.next(10, "apple")],
             loadNextPageEvents: [
-                .next(500, ()),
-                .next(520, ())
+                .next(700, ()),
+                .next(720, ())
             ]
         ))
         let observer = scheduler.createObserver([Repo].self)
@@ -161,26 +148,15 @@ final class SearchViewModelPaginationTests: XCTestCase {
         XCTAssertEqual(observer.events.compactMap { $0.value.element }, [[], firstPageRepos, firstPageRepos + secondPageRepos])
     }
 
-    func test_emptyQuery_clearsResultsAndResetsPaginationState() {
+    func test_loadNextPage_doesNotFetchWhenNoMorePagesRemain() {
         let service = GitHubServiceMock()
         let repos = [Repo.mock(id: 1, name: "Repo1")]
-        service.fetchReposHandler = { _, page, _ in
-            switch page {
-            case 1:
-                return .just(RepoPage(repos: repos, hasNextPage: true))
-            case 2:
-                return .just(RepoPage(repos: [Repo.mock(id: 2, name: "Repo2")], hasNextPage: false))
-            default:
-                return .just(RepoPage(repos: [], hasNextPage: false))
-            }
-        }
+        let viewModel = makeViewModel(service: service)
+        service.stubbedPage = RepoPage(repos: repos, hasNextPage: false)
 
-        let output = makeViewModel(service: service).transform(input: makeInput(
-            usernameEvents: [
-                .next(10, "apple"),
-                .next(700, "")
-            ],
-            loadNextPageEvents: [.next(800, ())]
+        let output = viewModel.transform(input: makeInput(
+            usernameEvents: [.next(10, "apple")],
+            loadNextPageEvents: [.next(700, ())]
         ))
         let observer = scheduler.createObserver([Repo].self)
 
@@ -191,7 +167,51 @@ final class SearchViewModelPaginationTests: XCTestCase {
         scheduler.start()
 
         XCTAssertEqual(service.requestedPages, [1])
-        XCTAssertEqual(observer.events.compactMap { $0.value.element }, [[], repos, []])
+        XCTAssertEqual(observer.events.compactMap { $0.value.element }, [[], repos])
+    }
+
+    func test_nextPageFailure_keepsExistingResults_andEmitsErrorMessage() {
+        let service = GitHubServiceMock()
+        let firstPageRepos = [Repo.mock(id: 1, name: "Repo1")]
+        let viewModel = makeViewModel(service: service)
+
+        service.fetchReposHandler = { _, page, _ in
+            switch page {
+            case 1:
+                return .just(RepoPage(repos: firstPageRepos, hasNextPage: true))
+            case 2:
+                return .error(GitHubServiceError.rateLimited)
+            default:
+                return .just(RepoPage(repos: [], hasNextPage: false))
+            }
+        }
+
+        let output = viewModel.transform(input: makeInput(
+            usernameEvents: [.next(10, "apple")],
+            loadNextPageEvents: [.next(700, ())]
+        ))
+        let reposObserver = scheduler.createObserver([Repo].self)
+        let errorObserver = scheduler.createObserver(String.self)
+        let stateObserver = scheduler.createObserver(SearchViewModel.ViewState.self)
+
+        output.repos
+            .subscribe(reposObserver)
+            .disposed(by: disposeBag)
+
+        output.errorMessage
+            .subscribe(errorObserver)
+            .disposed(by: disposeBag)
+
+        output.viewState
+            .subscribe(stateObserver)
+            .disposed(by: disposeBag)
+
+        scheduler.start()
+
+        XCTAssertEqual(service.requestedPages, [1, 2])
+        XCTAssertEqual(reposObserver.events.compactMap { $0.value.element }, [[], firstPageRepos])
+        XCTAssertEqual(errorObserver.events.compactMap { $0.value.element }, [L10n.GitHubServiceError.rateLimited])
+        XCTAssertEqual(stateObserver.events.compactMap { $0.value.element }, [.loading, .results(firstPageRepos)])
     }
 
     private func makeViewModel(service: GitHubServiceMock) -> SearchViewModel {
