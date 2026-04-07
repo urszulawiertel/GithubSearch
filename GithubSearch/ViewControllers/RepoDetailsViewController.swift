@@ -202,7 +202,7 @@ final class RepoDetailsViewController: UIViewController {
 
         languageTitleLabel.font = .preferredFont(forTextStyle: .caption1)
         languageTitleLabel.textColor = .secondaryLabel
-        languageTitleLabel.text = "Language"
+        languageTitleLabel.text = L10n.RepoDetails.languageTitle
 
         languageValueLabel.font = .preferredFont(forTextStyle: .body)
         languageValueLabel.numberOfLines = 0
@@ -210,7 +210,7 @@ final class RepoDetailsViewController: UIViewController {
 
         starsTitleLabel.font = .preferredFont(forTextStyle: .caption1)
         starsTitleLabel.textColor = .secondaryLabel
-        starsTitleLabel.text = "Stars"
+        starsTitleLabel.text = L10n.RepoDetails.starsTitle
 
         starsValueLabel.font = .preferredFont(forTextStyle: .body)
         starsValueLabel.numberOfLines = 0
@@ -223,7 +223,7 @@ final class RepoDetailsViewController: UIViewController {
         configuration.contentInsets = NSDirectionalEdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16)
         openOnGitHubButton.configuration = configuration
         openOnGitHubButton.accessibilityIdentifier = "repoDetails.openOnGitHubButton"
-        openOnGitHubButton.accessibilityHint = "Opens the repository in GitHub."
+        openOnGitHubButton.accessibilityHint = L10n.RepoDetails.openButtonHint
     }
 
     private func setupBindings() {

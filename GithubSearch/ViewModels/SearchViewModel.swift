@@ -13,8 +13,8 @@ final class SearchViewModel {
 
     private enum Constants {
         static let pageSize = 50
-        static let promptMessage = "Enter a GitHub username"
-        static let emptyMessage = "No public repositories found."
+        static let promptMessage = L10n.Search.promptMessage
+        static let emptyMessage = L10n.Search.emptyMessage
     }
 
     private struct SearchState {
@@ -233,7 +233,7 @@ final class SearchViewModel {
         if let serviceError = error as? GitHubServiceError {
             return serviceError.userMessage
         }
-        return "Something went wrong. Please try again."
+        return L10n.Common.genericErrorMessage
     }
 
     private static func mapReposToState(_ repos: [Repo]) -> ViewState {

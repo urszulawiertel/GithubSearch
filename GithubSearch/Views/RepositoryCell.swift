@@ -160,7 +160,7 @@ final class RepositoryCell: UITableViewCell {
 
         let metadata = [
             repo.language,
-            repo.stargazersCount > 0 ? "★ \(repo.stargazersCount)" : nil
+            repo.stargazersCount > 0 ? L10n.SearchResults.starsCount(repo.stargazersCount) : nil
         ]
             .compactMap { $0 }
             .joined(separator: "  •  ")

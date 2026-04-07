@@ -53,18 +53,18 @@ final class RepoDetailsViewModelTests: XCTestCase {
         scheduler.start()
 
         let state = try XCTUnwrap(observer.events.compactMap(\.value.element).last)
-        XCTAssertEqual(state.title, "Repository")
-        XCTAssertEqual(state.subtitle, "Full name unavailable")
+        XCTAssertEqual(state.title, L10n.RepoDetails.titleFallback)
+        XCTAssertEqual(state.subtitle, L10n.RepoDetails.subtitleFallback)
         XCTAssertTrue(state.subtitleIsSecondary)
         XCTAssertNotNil(state.avatarURL)
-        XCTAssertEqual(state.avatarAccessibilityLabel, "Repository owner avatar")
-        XCTAssertEqual(state.descriptionText, "No description provided.")
+        XCTAssertEqual(state.avatarAccessibilityLabel, L10n.RepoDetails.avatarAccessibilityFallback)
+        XCTAssertEqual(state.descriptionText, L10n.RepoDetails.descriptionFallback)
         XCTAssertTrue(state.descriptionIsSecondary)
-        XCTAssertEqual(state.languageText, "Not specified")
+        XCTAssertEqual(state.languageText, L10n.RepoDetails.languageFallback)
         XCTAssertTrue(state.languageIsSecondary)
-        XCTAssertEqual(state.starsText, "No stars yet")
+        XCTAssertEqual(state.starsText, L10n.RepoDetails.noStarsFallback)
         XCTAssertTrue(state.starsIsSecondary)
-        XCTAssertEqual(state.openButtonTitle, "Open on GitHub")
+        XCTAssertEqual(state.openButtonTitle, L10n.RepoDetails.openButtonTitle)
     }
 
     func test_state_formatsNonEmptyValuesAndStarCount() throws {
@@ -96,7 +96,7 @@ final class RepoDetailsViewModelTests: XCTestCase {
         XCTAssertEqual(state.subtitle, "urszula/GithubSearch")
         XCTAssertFalse(state.subtitleIsSecondary)
         XCTAssertEqual(state.avatarURL, URL(string: "https://avatars.githubusercontent.com/u/1?v=4"))
-        XCTAssertEqual(state.avatarAccessibilityLabel, "Avatar for urszula")
+        XCTAssertEqual(state.avatarAccessibilityLabel, L10n.RepoDetails.avatarAccessibilityLabel(login: "urszula"))
         XCTAssertEqual(state.descriptionText, "Search repositories by user.")
         XCTAssertFalse(state.descriptionIsSecondary)
         XCTAssertEqual(state.languageText, "Swift")
@@ -146,7 +146,7 @@ final class RepoDetailsViewModelTests: XCTestCase {
 
         let state = try XCTUnwrap(observer.events.compactMap(\.value.element).last)
         XCTAssertNil(state.avatarURL)
-        XCTAssertEqual(state.avatarAccessibilityLabel, "Avatar for owner")
+        XCTAssertEqual(state.avatarAccessibilityLabel, L10n.RepoDetails.avatarAccessibilityLabel(login: "owner"))
     }
 
     func test_state_usesFallbackAvatarLabelWhenOwnerLoginIsBlank() throws {
@@ -167,6 +167,6 @@ final class RepoDetailsViewModelTests: XCTestCase {
         scheduler.start()
 
         let state = try XCTUnwrap(observer.events.compactMap(\.value.element).last)
-        XCTAssertEqual(state.avatarAccessibilityLabel, "Repository owner avatar")
+        XCTAssertEqual(state.avatarAccessibilityLabel, L10n.RepoDetails.avatarAccessibilityFallback)
     }
 }

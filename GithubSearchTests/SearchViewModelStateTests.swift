@@ -70,7 +70,7 @@ final class SearchViewModelStateTests: XCTestCase {
 
         XCTAssertEqual(
             observer.events.compactMap { $0.value.element },
-            [.loading, .results(service.stubbedPage.repos), .loading, .results(service.stubbedPage.repos), .prompt("Enter a GitHub username")]
+            [.loading, .results(service.stubbedPage.repos), .loading, .results(service.stubbedPage.repos), .prompt(L10n.Search.promptMessage)]
         )
     }
 
@@ -97,7 +97,7 @@ final class SearchViewModelStateTests: XCTestCase {
         scheduler.start()
 
         XCTAssertEqual(stateObserver.events.compactMap { $0.value.element }, [.loading, .failure])
-        XCTAssertEqual(errorObserver.events.compactMap { $0.value.element }, ["We couldn't find that GitHub user."])
+        XCTAssertEqual(errorObserver.events.compactMap { $0.value.element }, [L10n.GitHubServiceError.userNotFound])
     }
 
     func test_repos_clearImmediately_whenUsernameBecomesEmptyString() {

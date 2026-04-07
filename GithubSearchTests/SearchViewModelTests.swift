@@ -164,7 +164,7 @@ final class SearchViewModelTests: XCTestCase {
 
         XCTAssertEqual(
             observer.events.compactMap { $0.value.element },
-            [.loading, .results(service.stubbedPage.repos), .prompt("Enter a GitHub username")]
+            [.loading, .results(service.stubbedPage.repos), .prompt(L10n.Search.promptMessage)]
         )
     }
 
@@ -197,15 +197,15 @@ final class SearchViewModelTests: XCTestCase {
 
         scheduler.start()
 
-        XCTAssertEqual(errorObserver.events.compactMap { $0.value.element }, ["We couldn't find that GitHub user."])
+        XCTAssertEqual(errorObserver.events.compactMap { $0.value.element }, [L10n.GitHubServiceError.userNotFound])
         XCTAssertEqual(reposObserver.events.compactMap { $0.value.element }.last, [])
     }
 
     func test_errorMessage_usesFriendlyMessages_forServiceErrors() {
-        XCTAssertEqual(GitHubServiceError.userNotFound.userMessage, "We couldn't find that GitHub user.")
-        XCTAssertEqual(GitHubServiceError.connectivity.userMessage, "You're offline right now. Check your internet connection and try again.")
-        XCTAssertEqual(GitHubServiceError.rateLimited.userMessage, "GitHub is receiving too many requests right now. Please wait a moment and try again.")
-        XCTAssertEqual(GitHubServiceError.unknown.userMessage, "Something went wrong. Please try again.")
+        XCTAssertEqual(GitHubServiceError.userNotFound.userMessage, L10n.GitHubServiceError.userNotFound)
+        XCTAssertEqual(GitHubServiceError.connectivity.userMessage, L10n.GitHubServiceError.connectivity)
+        XCTAssertEqual(GitHubServiceError.rateLimited.userMessage, L10n.GitHubServiceError.rateLimited)
+        XCTAssertEqual(GitHubServiceError.unknown.userMessage, L10n.Common.genericErrorMessage)
     }
 
     func test_errorMessage_fallsBackToGenericMessage_forUnknownErrors() {
@@ -239,7 +239,7 @@ final class SearchViewModelTests: XCTestCase {
 
         scheduler.start()
 
-        XCTAssertEqual(errorObserver.events.compactMap { $0.value.element }, ["Something went wrong. Please try again."])
+        XCTAssertEqual(errorObserver.events.compactMap { $0.value.element }, [L10n.Common.genericErrorMessage])
     }
 
     private func makeInput(

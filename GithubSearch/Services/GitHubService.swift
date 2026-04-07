@@ -24,15 +24,15 @@ enum GitHubServiceError: Error, Equatable {
     var userMessage: String {
         switch self {
         case .invalidURL:
-            return "Enter a valid GitHub username."
+            return L10n.GitHubServiceError.invalidUsername
         case .userNotFound:
-            return "We couldn't find that GitHub user."
+            return L10n.GitHubServiceError.userNotFound
         case .connectivity:
-            return "You're offline right now. Check your internet connection and try again."
+            return L10n.GitHubServiceError.connectivity
         case .rateLimited:
-            return "GitHub is receiving too many requests right now. Please wait a moment and try again."
+            return L10n.GitHubServiceError.rateLimited
         case .decoding, .unknown:
-            return "Something went wrong. Please try again."
+            return L10n.Common.genericErrorMessage
         }
     }
 }

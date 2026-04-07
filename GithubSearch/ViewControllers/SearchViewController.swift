@@ -41,7 +41,7 @@ final class SearchViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "User Repositories"
+        title = L10n.Search.navigationTitle
         view.backgroundColor = .systemBackground
 
         setupSearch()
@@ -55,7 +55,7 @@ final class SearchViewController: UIViewController {
         navigationItem.hidesSearchBarWhenScrolling = false
 
         searchController.obscuresBackgroundDuringPresentation = false
-        searchController.searchBar.placeholder = "Enter a GitHub username"
+        searchController.searchBar.placeholder = L10n.Search.usernamePlaceholder
         searchController.searchBar.searchTextField.accessibilityIdentifier = Constants.searchTextFieldAccessibilityIdentifier
         definesPresentationContext = true
     }
@@ -169,8 +169,12 @@ final class SearchViewController: UIViewController {
             return
         }
 
-        let alertController = UIAlertController(title: "Error", message: message, preferredStyle: .alert)
-        alertController.addAction(UIAlertAction(title: "OK", style: .default))
+        let alertController = UIAlertController(
+            title: L10n.Common.errorTitle,
+            message: message,
+            preferredStyle: .alert
+        )
+        alertController.addAction(UIAlertAction(title: L10n.Common.okButton, style: .default))
         present(alertController, animated: true)
     }
 }

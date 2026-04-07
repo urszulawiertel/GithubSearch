@@ -12,13 +12,13 @@ import RxCocoa
 final class RepoDetailsViewModel {
 
     private enum Constants {
-        static let titleFallback = "Repository"
-        static let subtitleFallback = "Full name unavailable"
-        static let descriptionFallback = "No description provided."
-        static let languageFallback = "Not specified"
-        static let noStarsFallback = "No stars yet"
-        static let openButtonTitle = "Open on GitHub"
-        static let avatarAccessibilityFallback = "Repository owner avatar"
+        static let titleFallback = L10n.RepoDetails.titleFallback
+        static let subtitleFallback = L10n.RepoDetails.subtitleFallback
+        static let descriptionFallback = L10n.RepoDetails.descriptionFallback
+        static let languageFallback = L10n.RepoDetails.languageFallback
+        static let noStarsFallback = L10n.RepoDetails.noStarsFallback
+        static let openButtonTitle = L10n.RepoDetails.openButtonTitle
+        static let avatarAccessibilityFallback = L10n.RepoDetails.avatarAccessibilityFallback
     }
 
     struct Input {
@@ -97,7 +97,7 @@ final class RepoDetailsViewModel {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         let formattedCount = formatter.string(from: NSNumber(value: count)) ?? "\(count)"
-        return "★ \(formattedCount)"
+        return L10n.RepoDetails.starsCount(formattedCount)
     }
 
     private static func avatarAccessibilityLabel(login: String?) -> String {
@@ -105,6 +105,6 @@ final class RepoDetailsViewModel {
             return Constants.avatarAccessibilityFallback
         }
 
-        return "Avatar for \(login)"
+        return L10n.RepoDetails.avatarAccessibilityLabel(login: login)
     }
 }
