@@ -6,9 +6,9 @@ The app focuses on a clear search flow: type a username, browse paginated reposi
 
 ## Screenshots
 
-| Search | Results | Details |
-|-------|--------|---------|
-| <img src="./Screenshots/search.png" alt="Search screen" width="240" /> | <img src="./Screenshots/results.png" alt="Results screen" width="240" /> | <img src="./Screenshots/details.png" alt="Repository details screen" width="240" /> |
+| Demo | Search | Results | Details |
+|------|--------|---------|---------|
+| <a href="./Screenshots/demo.mov"><img src="./Screenshots/demo.mov.png" alt="Demo recording" width="220" /></a> | <img src="./Screenshots/search.png" alt="Search screen" width="220" /> | <img src="./Screenshots/results.png" alt="Results screen" width="220" /> | <img src="./Screenshots/details.png" alt="Repository details screen" width="220" /> |
 
 ## Architecture
 
