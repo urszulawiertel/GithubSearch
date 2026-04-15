@@ -17,32 +17,30 @@ final class SearchViewModel {
         static let emptyMessage = L10n.Search.emptyMessage
     }
 
-    private struct SearchState {
-        var currentQuery = ""
-        var currentPage = 0
-        var currentRepos: [Repo] = []
-        var hasMorePages = false
-        var isPageLoadInProgress = false
+    struct SearchState: Equatable {
+        var query: String
+        var repos: [Repo]
+        var phase: SearchPhase
+        var currentPage: Int
+        var hasMorePages: Bool
+        var isLoadingNextPage: Bool
     }
 
-    private struct OutputRelays {
-        let repos: PublishRelay<[Repo]>
-        let viewState: PublishRelay<ViewState>
-        let error: PublishRelay<String>
-    }
-
-    private struct PageLoadRequest {
-        let query: String
-        let page: Int
-        let isInitialLoad: Bool
-    }
-
-    enum ViewState: Equatable {
+    enum SearchPhase: Equatable {
         case prompt(String)
         case loading
-        case results([Repo])
+        case results
         case empty(String)
         case failure
+    }
+
+    private enum Action {
+        case queryChanged(String)
+        case initialLoaded(query: String, page: RepoPage)
+        case initialFailed(query: String, message: String)
+        case nextPageRequested(query: String)
+        case nextPageLoaded(query: String, pageNumber: Int, page: RepoPage)
+        case nextPageFailed(query: String, message: String)
     }
 
     struct Input {
@@ -51,16 +49,13 @@ final class SearchViewModel {
     }
 
     struct Output {
-        let viewState: Observable<ViewState>
-        let repos: Observable<[Repo]>
-        let errorMessage: Observable<String>
+        let state: Driver<SearchState>
+        let alertMessage: Signal<String>
     }
 
     private let service: GitHubServiceType
     private let scheduler: SchedulerType
     private let debounceInterval: RxTimeInterval
-    private let disposeBag = DisposeBag()
-    private var state = SearchState()
 
     init(
         service: GitHubServiceType = GitHubService(),
@@ -73,160 +68,198 @@ final class SearchViewModel {
     }
 
     func transform(input: Input) -> Output {
-        state = SearchState()
-
+        let stateRelay = BehaviorRelay(value: Self.initialState)
         let username = input.username
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .distinctUntilChanged()
             .share(replay: 1, scope: .whileConnected)
-        let debouncedUsername = username
-            .filter { !$0.isEmpty }
-            .debounce(debounceInterval, scheduler: scheduler)
+
+        let initialActions = username
+            .flatMapLatest { [service, scheduler, debounceInterval] name -> Observable<Action> in
+                guard !name.isEmpty else {
+                    return .just(.queryChanged(""))
+                }
+
+                let loading = Observable.just(Action.queryChanged(name))
+
+                let request = Observable.just(name)
+                    .debounce(debounceInterval, scheduler: scheduler)
+                    .flatMap { query in
+                        service.fetchRepos(username: query, page: 1, perPage: Constants.pageSize)
+                            .asObservable()
+                            .map { Action.initialLoaded(query: query, page: $0) }
+                            .catch { error in
+                                .just(.initialFailed(query: query, message: Self.mapError(error)))
+                            }
+                    }
+
+                return Observable.concat(loading, request)
+            }
+
+        let nextPageActions = input.loadNextPage
+            .withLatestFrom(stateRelay.asObservable())
+            .filter { state in
+                !state.query.isEmpty && state.hasMorePages && !state.isLoadingNextPage
+            }
+            .flatMapFirst { [service] state -> Observable<Action> in
+                let nextPage = state.currentPage + 1
+                let query = state.query
+                let loading = Observable.just(Action.nextPageRequested(query: query))
+
+                let request = service.fetchRepos(username: query, page: nextPage, perPage: Constants.pageSize)
+                    .asObservable()
+                    .map { Action.nextPageLoaded(query: query, pageNumber: nextPage, page: $0) }
+                    .catch { error in
+                        .just(.nextPageFailed(query: query, message: Self.mapError(error)))
+                    }
+
+                return Observable.concat(loading, request)
+            }
+
+        let actions = Observable.merge(initialActions, nextPageActions)
             .share(replay: 1, scope: .whileConnected)
 
-        let relays = OutputRelays(
-            repos: PublishRelay<[Repo]>(),
-            viewState: PublishRelay<ViewState>(),
-            error: PublishRelay<String>()
-        )
+        let state = actions
+            .scan(Self.initialState, accumulator: Self.reduce)
+            .startWith(Self.initialState)
+            .do(onNext: stateRelay.accept)
+            .asDriver(onErrorJustReturn: Self.initialState)
 
-        bindUsername(username, relays: relays)
-        bindDebouncedUsername(debouncedUsername, relays: relays)
-        bindLoadNextPage(input.loadNextPage, relays: relays)
+        let alertMessage = actions
+            .compactMap { action -> String? in
+                switch action {
+                case let .initialFailed(_, message),
+                     let .nextPageFailed(_, message):
+                    return message
+                default:
+                    return nil
+                }
+            }
+            .asSignal(onErrorSignalWith: .empty())
 
         return Output(
-            viewState: relays.viewState
-                .distinctUntilChanged()
-                .asObservable(),
-            repos: relays.repos
-                .distinctUntilChanged()
-                .asObservable(),
-            errorMessage: relays.error.asObservable()
+            state: state,
+            alertMessage: alertMessage
         )
     }
 
-    private func bindUsername(
-        _ username: Observable<String>,
-        relays: OutputRelays
-    ) {
-        username
-            .subscribe(onNext: { [weak self] name in
-                guard let self else { return }
-
-                guard !name.isEmpty else {
-                    self.state.currentQuery = ""
-                    self.resetPagination()
-                    relays.repos.accept([])
-                    relays.viewState.accept(.prompt(Constants.promptMessage))
-                    return
-                }
-
-                self.state.currentQuery = name
-                self.resetPagination()
-                relays.repos.accept([])
-                relays.viewState.accept(.loading)
-            })
-            .disposed(by: disposeBag)
+    private static var initialState: SearchState {
+        SearchState(
+            query: "",
+            repos: [],
+            phase: .prompt(Constants.promptMessage),
+            currentPage: 0,
+            hasMorePages: false,
+            isLoadingNextPage: false
+        )
     }
 
-    private func bindDebouncedUsername(
-        _ debouncedUsername: Observable<String>,
-        relays: OutputRelays
-    ) {
-        debouncedUsername
-            .subscribe(onNext: { [weak self] name in
-                guard let self else { return }
-
-                guard self.state.currentQuery == name, !self.state.isPageLoadInProgress else {
-                    return
-                }
-
-                self.loadPage(
-                    PageLoadRequest(query: name, page: 1, isInitialLoad: true),
-                    relays: relays
-                )
-            })
-            .disposed(by: disposeBag)
+    private static func reduce(state: SearchState, action: Action) -> SearchState {
+        switch action {
+        case let .queryChanged(query):
+            return reduceQueryChanged(state: state, query: query)
+        case let .initialLoaded(query, page):
+            return reduceInitialLoaded(state: state, query: query, page: page)
+        case let .initialFailed(query, _):
+            return reduceInitialFailed(state: state, query: query)
+        case let .nextPageRequested(query):
+            return reduceNextPageRequested(state: state, query: query)
+        case let .nextPageLoaded(query, pageNumber, page):
+            return reduceNextPageLoaded(state: state, query: query, pageNumber: pageNumber, page: page)
+        case let .nextPageFailed(query, _):
+            return reduceNextPageFailed(state: state, query: query)
+        }
     }
 
-    private func bindLoadNextPage(
-        _ loadNextPage: Observable<Void>,
-        relays: OutputRelays
-    ) {
-        loadNextPage
-            .subscribe(onNext: { [weak self] in
-                guard let self else { return }
+    private static func reduceQueryChanged(state: SearchState, query: String) -> SearchState {
+        var state = state
 
-                guard !self.state.currentQuery.isEmpty, self.state.hasMorePages, !self.state.isPageLoadInProgress else {
-                    return
-                }
-
-                self.loadPage(
-                    PageLoadRequest(
-                        query: self.state.currentQuery,
-                        page: self.state.currentPage + 1,
-                        isInitialLoad: false
-                    ),
-                    relays: relays
-                )
-            })
-            .disposed(by: disposeBag)
-    }
-
-    private func resetPagination() {
+        state.query = query
+        state.repos = []
         state.currentPage = 0
-        state.currentRepos = []
         state.hasMorePages = false
-        state.isPageLoadInProgress = false
+        state.isLoadingNextPage = false
+        state.phase = query.isEmpty
+            ? .prompt(Constants.promptMessage)
+            : .loading
+
+        return state
     }
 
-    private func applyLoadedPage(
-        _ response: RepoPage,
-        request: PageLoadRequest,
-        relays: OutputRelays
-    ) {
-        state.currentRepos = request.isInitialLoad ? response.repos : state.currentRepos + response.repos
-        state.currentPage = request.page
-        state.hasMorePages = response.hasNextPage
-        relays.repos.accept(state.currentRepos)
-        relays.viewState.accept(Self.mapReposToState(state.currentRepos))
+    private static func reduceInitialLoaded(state: SearchState, query: String, page: RepoPage) -> SearchState {
+        var state = state
+
+        guard state.query == query else {
+            return state
+        }
+        state.repos = page.repos
+        state.currentPage = 1
+        state.hasMorePages = page.hasNextPage
+        state.isLoadingNextPage = false
+        state.phase = page.repos.isEmpty
+            ? .empty(Constants.emptyMessage)
+            : .results
+
+        return state
     }
 
-    private func loadPage(
-        _ request: PageLoadRequest,
-        relays: OutputRelays
-    ) {
-        state.isPageLoadInProgress = true
+    private static func reduceInitialFailed(state: SearchState, query: String) -> SearchState {
+        var state = state
 
-        service.fetchRepos(username: request.query, page: request.page, perPage: Constants.pageSize)
-            .observe(on: scheduler)
-            .subscribe(
-                onSuccess: { [weak self] response in
-                    guard let self else { return }
+        guard state.query == query else {
+            return state
+        }
+        state.repos = []
+        state.currentPage = 0
+        state.hasMorePages = false
+        state.isLoadingNextPage = false
+        state.phase = .failure
 
-                    guard request.query == self.state.currentQuery else {
-                        return
-                    }
+        return state
+    }
 
-                    self.state.isPageLoadInProgress = false
-                    self.applyLoadedPage(response, request: request, relays: relays)
-                },
-                onFailure: { [weak self] error in
-                    guard let self else { return }
+    private static func reduceNextPageRequested(state: SearchState, query: String) -> SearchState {
+        var state = state
 
-                    guard request.query == self.state.currentQuery else {
-                        return
-                    }
+        guard state.query == query, state.hasMorePages else {
+            return state
+        }
+        state.isLoadingNextPage = true
 
-                    self.state.isPageLoadInProgress = false
-                    relays.error.accept(Self.mapError(error))
+        return state
+    }
 
-                    if request.isInitialLoad {
-                        relays.viewState.accept(.failure)
-                    }
-                }
-            )
-            .disposed(by: disposeBag)
+    private static func reduceNextPageLoaded(
+        state: SearchState,
+        query: String,
+        pageNumber: Int,
+        page: RepoPage
+    ) -> SearchState {
+        var state = state
+
+        guard state.query == query, state.isLoadingNextPage else {
+            return state
+        }
+        state.repos += page.repos
+        state.currentPage = pageNumber
+        state.hasMorePages = page.hasNextPage
+        state.isLoadingNextPage = false
+        state.phase = state.repos.isEmpty
+            ? .empty(Constants.emptyMessage)
+            : .results
+
+        return state
+    }
+
+    private static func reduceNextPageFailed(state: SearchState, query: String) -> SearchState {
+        var state = state
+
+        guard state.query == query else {
+            return state
+        }
+        state.isLoadingNextPage = false
+
+        return state
     }
 
     private static func mapError(_ error: Error) -> String {
@@ -236,9 +269,4 @@ final class SearchViewModel {
         return L10n.Common.genericErrorMessage
     }
 
-    private static func mapReposToState(_ repos: [Repo]) -> ViewState {
-        repos.isEmpty
-            ? .empty(Constants.emptyMessage)
-            : .results(repos)
-    }
 }

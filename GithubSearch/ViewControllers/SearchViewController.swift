@@ -110,21 +110,20 @@ final class SearchViewController: UIViewController {
 
         let output = viewModel.transform(input: input)
 
-        output.viewState
-            .observe(on: MainScheduler.instance)
-            .bind(to: rx.viewState)
+        output.state
+            .drive(rx.searchState)
             .disposed(by: disposeBag)
 
-        output.errorMessage
-            .observe(on: MainScheduler.instance)
-            .subscribe(onNext: { [weak self] message in
+        output.alertMessage
+            .emit(onNext: { [weak self] message in
                 self?.showErrorAlert(message: message)
             })
             .disposed(by: disposeBag)
 
-        output.repos
-            .observe(on: MainScheduler.instance)
-            .bind(to: resultsTableView.rx.items(
+        output.state
+            .map(\.repos)
+            .distinctUntilChanged()
+            .drive(resultsTableView.rx.items(
                 cellIdentifier: RepositoryCell.reuseID,
                 cellType: RepositoryCell.self
             )) { _, repo, cell in
@@ -143,7 +142,7 @@ final class SearchViewController: UIViewController {
             .disposed(by: disposeBag)
 
         resultsTableView.rx.didScroll
-            .withLatestFrom(output.repos) { [weak self] _, repos -> Void? in
+            .withLatestFrom(output.state.asObservable()) { [weak self] _, state -> Void? in
                 guard let self else {
                     return nil
                 }
@@ -153,7 +152,10 @@ final class SearchViewController: UIViewController {
                     0
                 )
 
-                guard self.resultsTableView.contentOffset.y >= thresholdOffset, !repos.isEmpty else {
+                guard self.resultsTableView.contentOffset.y >= thresholdOffset,
+                      !state.repos.isEmpty,
+                      state.hasMorePages,
+                      !state.isLoadingNextPage else {
                     return nil
                 }
                 return ()
@@ -182,11 +184,11 @@ final class SearchViewController: UIViewController {
 // MARK: - Rx Bindings
 private extension Reactive where Base: SearchViewController {
 
-    var viewState: Binder<SearchViewModel.ViewState> {
+    var searchState: Binder<SearchViewModel.SearchState> {
         Binder(base) { viewController, state in
             viewController.view.bringSubviewToFront(viewController.activityIndicatorView)
 
-            switch state {
+            switch state.phase {
             case .loading:
                 viewController.emptyStateLabel.isHidden = true
                 viewController.resultsTableView.isHidden = true
