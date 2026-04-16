@@ -50,7 +50,10 @@ final class SearchViewModelPaginationTests: XCTestCase {
         ))
         let observer = scheduler.createObserver([Repo].self)
 
-        output.repos
+        output.state
+            .asObservable()
+            .map(\.repos)
+            .distinctUntilChanged()
             .subscribe(observer)
             .disposed(by: disposeBag)
 
@@ -89,7 +92,10 @@ final class SearchViewModelPaginationTests: XCTestCase {
         ))
         let observer = scheduler.createObserver([Repo].self)
 
-        output.repos
+        output.state
+            .asObservable()
+            .map(\.repos)
+            .distinctUntilChanged()
             .subscribe(observer)
             .disposed(by: disposeBag)
 
@@ -138,7 +144,10 @@ final class SearchViewModelPaginationTests: XCTestCase {
         ))
         let observer = scheduler.createObserver([Repo].self)
 
-        output.repos
+        output.state
+            .asObservable()
+            .map(\.repos)
+            .distinctUntilChanged()
             .subscribe(observer)
             .disposed(by: disposeBag)
 
@@ -160,7 +169,10 @@ final class SearchViewModelPaginationTests: XCTestCase {
         ))
         let observer = scheduler.createObserver([Repo].self)
 
-        output.repos
+        output.state
+            .asObservable()
+            .map(\.repos)
+            .distinctUntilChanged()
             .subscribe(observer)
             .disposed(by: disposeBag)
 
@@ -192,17 +204,24 @@ final class SearchViewModelPaginationTests: XCTestCase {
         ))
         let reposObserver = scheduler.createObserver([Repo].self)
         let errorObserver = scheduler.createObserver(String.self)
-        let stateObserver = scheduler.createObserver(SearchViewModel.ViewState.self)
+        let stateObserver = scheduler.createObserver(SearchViewModel.SearchPhase.self)
 
-        output.repos
+        output.state
+            .asObservable()
+            .map(\.repos)
+            .distinctUntilChanged()
             .subscribe(reposObserver)
             .disposed(by: disposeBag)
 
-        output.errorMessage
+        output.alertMessage
+            .asObservable()
             .subscribe(errorObserver)
             .disposed(by: disposeBag)
 
-        output.viewState
+        output.state
+            .asObservable()
+            .map(\.phase)
+            .distinctUntilChanged()
             .subscribe(stateObserver)
             .disposed(by: disposeBag)
 
@@ -211,7 +230,7 @@ final class SearchViewModelPaginationTests: XCTestCase {
         XCTAssertEqual(service.requestedPages, [1, 2])
         XCTAssertEqual(reposObserver.events.compactMap { $0.value.element }, [[], firstPageRepos])
         XCTAssertEqual(errorObserver.events.compactMap { $0.value.element }, [L10n.GitHubServiceError.rateLimited])
-        XCTAssertEqual(stateObserver.events.compactMap { $0.value.element }, [.loading, .results(firstPageRepos)])
+        XCTAssertEqual(stateObserver.events.compactMap { $0.value.element }, [.prompt(L10n.Search.promptMessage), .loading, .results])
     }
 
     private func makeViewModel(service: GitHubServiceMock) -> SearchViewModel {

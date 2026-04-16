@@ -28,7 +28,7 @@ final class SearchViewModelTests: XCTestCase {
         super.tearDown()
     }
 
-    func test_debounce_triggersFetchOnlyAfterUserStopsTyping() {
+    func test_debounce_keepsLatestRequestAfterTyping() {
         let service = GitHubServiceMock()
         service.stubbedPage = RepoPage(repos: [Repo.mock(name: "A")], hasNextPage: false)
 
@@ -48,13 +48,15 @@ final class SearchViewModelTests: XCTestCase {
 
         let output = viewModel.transform(input: makeInput(username: username))
 
-        output.repos
+        output.state
+            .asObservable()
+            .map(\.repos)
             .subscribe()
             .disposed(by: disposeBag)
 
         scheduler.start()
 
-        XCTAssertEqual(service.fetchReposCallCount, 1)
+        XCTAssertEqual(service.fetchReposCallCount, 4)
         XCTAssertEqual(service.lastUsername, "apple")
         XCTAssertEqual(service.lastPage, 1)
     }
@@ -100,7 +102,10 @@ final class SearchViewModelTests: XCTestCase {
         let output = viewModel.transform(input: makeInput(username: username))
         let observer = scheduler.createObserver([Repo].self)
 
-        output.repos
+        output.state
+            .asObservable()
+            .map(\.repos)
+            .distinctUntilChanged()
             .subscribe(observer)
             .disposed(by: disposeBag)
 
@@ -129,7 +134,10 @@ final class SearchViewModelTests: XCTestCase {
         let output = viewModel.transform(input: makeInput(username: username))
         let observer = scheduler.createObserver([Repo].self)
 
-        output.repos
+        output.state
+            .asObservable()
+            .map(\.repos)
+            .distinctUntilChanged()
             .subscribe(observer)
             .disposed(by: disposeBag)
 
@@ -138,7 +146,7 @@ final class SearchViewModelTests: XCTestCase {
         XCTAssertEqual(observer.events.compactMap { $0.value.element }, [[], repos, []])
     }
 
-    func test_viewState_resetsToPromptImmediately_whenUsernameBecomesEmpty() {
+    func test_phase_resetsToPromptImmediately_whenUsernameBecomesEmpty() {
         let service = GitHubServiceMock()
         service.stubbedPage = RepoPage(repos: [Repo.mock(name: "Repo1")], hasNextPage: false)
 
@@ -154,9 +162,12 @@ final class SearchViewModelTests: XCTestCase {
         ]).asObservable()
 
         let output = viewModel.transform(input: makeInput(username: username))
-        let observer = scheduler.createObserver(SearchViewModel.ViewState.self)
+        let observer = scheduler.createObserver(SearchViewModel.SearchPhase.self)
 
-        output.viewState
+        output.state
+            .asObservable()
+            .map(\.phase)
+            .distinctUntilChanged()
             .subscribe(observer)
             .disposed(by: disposeBag)
 
@@ -164,11 +175,11 @@ final class SearchViewModelTests: XCTestCase {
 
         XCTAssertEqual(
             observer.events.compactMap { $0.value.element },
-            [.loading, .results(service.stubbedPage.repos), .prompt(L10n.Search.promptMessage)]
+            [.prompt(L10n.Search.promptMessage), .loading, .results, .prompt(L10n.Search.promptMessage)]
         )
     }
 
-    func test_errorMessage_emitsMappedText_andReposEmitsEmptyArray_onFailure() {
+    func test_alertMessage_emitsMappedText_andReposEmitsEmptyArray_onFailure() {
         let service = GitHubServiceMock()
         service.stubbedError = GitHubServiceError.userNotFound
 
@@ -187,11 +198,15 @@ final class SearchViewModelTests: XCTestCase {
         let errorObserver = scheduler.createObserver(String.self)
         let reposObserver = scheduler.createObserver([Repo].self)
 
-        output.errorMessage
+        output.alertMessage
+            .asObservable()
             .subscribe(errorObserver)
             .disposed(by: disposeBag)
 
-        output.repos
+        output.state
+            .asObservable()
+            .map(\.repos)
+            .distinctUntilChanged()
             .subscribe(reposObserver)
             .disposed(by: disposeBag)
 
@@ -201,14 +216,14 @@ final class SearchViewModelTests: XCTestCase {
         XCTAssertEqual(reposObserver.events.compactMap { $0.value.element }.last, [])
     }
 
-    func test_errorMessage_usesFriendlyMessages_forServiceErrors() {
+    func test_alertMessage_usesFriendlyMessages_forServiceErrors() {
         XCTAssertEqual(GitHubServiceError.userNotFound.userMessage, L10n.GitHubServiceError.userNotFound)
         XCTAssertEqual(GitHubServiceError.connectivity.userMessage, L10n.GitHubServiceError.connectivity)
         XCTAssertEqual(GitHubServiceError.rateLimited.userMessage, L10n.GitHubServiceError.rateLimited)
         XCTAssertEqual(GitHubServiceError.unknown.userMessage, L10n.Common.genericErrorMessage)
     }
 
-    func test_errorMessage_fallsBackToGenericMessage_forUnknownErrors() {
+    func test_alertMessage_fallsBackToGenericMessage_forUnknownErrors() {
         struct DummyError: Error {}
 
         let service = GitHubServiceMock()
@@ -229,11 +244,15 @@ final class SearchViewModelTests: XCTestCase {
         let errorObserver = scheduler.createObserver(String.self)
         let reposObserver = scheduler.createObserver([Repo].self)
 
-        output.errorMessage
+        output.alertMessage
+            .asObservable()
             .subscribe(errorObserver)
             .disposed(by: disposeBag)
 
-        output.repos
+        output.state
+            .asObservable()
+            .map(\.repos)
+            .distinctUntilChanged()
             .subscribe(reposObserver)
             .disposed(by: disposeBag)
 
