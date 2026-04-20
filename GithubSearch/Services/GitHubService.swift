@@ -38,7 +38,7 @@ enum GitHubServiceError: Error, Equatable {
 }
 
 protocol GitHubServiceType {
-    func fetchRepos(username: String, page: Int, perPage: Int) -> Single<RepoPage>
+    func fetchRepos(username: String, page: Int, perPage: Int, sort: SearchSort) -> Single<RepoPage>
 }
 
 final class GitHubService: GitHubServiceType {
@@ -52,9 +52,9 @@ final class GitHubService: GitHubServiceType {
         self.decoder = decoder
     }
 
-    func fetchRepos(username: String, page: Int, perPage: Int) -> Single<RepoPage> {
+    func fetchRepos(username: String, page: Int, perPage: Int, sort: SearchSort = .bestMatch) -> Single<RepoPage> {
         let trimmed = username.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = GitHubAPI.reposURL(username: trimmed, page: page, perPage: perPage) else {
+        guard let url = GitHubAPI.reposURL(username: trimmed, page: page, perPage: perPage, sort: sort) else {
             return .error(GitHubServiceError.invalidURL)
         }
 
@@ -66,7 +66,7 @@ final class GitHubService: GitHubServiceType {
                 do {
                     let repos = try decoder.decode([Repo].self, from: data)
                     let page = RepoPage(
-                        repos: repos,
+                        repos: Self.sort(repos, by: sort),
                         hasNextPage: Self.hasNextPage(http)
                     )
                     return .just(page)
@@ -119,6 +119,17 @@ final class GitHubService: GitHubServiceType {
             return true
         default:
             return false
+        }
+    }
+
+    private static func sort(_ repos: [Repo], by sort: SearchSort) -> [Repo] {
+        switch sort {
+        case .stars:
+            return repos.sorted { lhs, rhs in
+                lhs.stargazersCount > rhs.stargazersCount
+            }
+        case .bestMatch, .updated, .name:
+            return repos
         }
     }
 }

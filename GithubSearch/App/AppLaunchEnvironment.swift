@@ -36,7 +36,7 @@ private final class UITestGitHubService: GitHubServiceType {
         self.scenario = scenario
     }
 
-    func fetchRepos(username: String, page: Int, perPage: Int) -> Single<RepoPage> {
+    func fetchRepos(username: String, page: Int, perPage: Int, sort: SearchSort) -> Single<RepoPage> {
         switch scenario {
         case .success:
             return .just(RepoPage(

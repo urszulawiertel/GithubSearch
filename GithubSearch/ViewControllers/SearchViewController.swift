@@ -29,6 +29,13 @@ final class SearchViewController: UIViewController {
     fileprivate let emptyStateLabel = UILabel()
 
     private let searchController = UISearchController(searchResultsController: nil)
+    private let sortChangedRelay = PublishRelay<SearchSort>()
+    private lazy var sortBarButtonItem = UIBarButtonItem(
+        title: L10n.Search.sortButtonTitle,
+        image: nil,
+        primaryAction: nil,
+        menu: makeSortMenu(selectedSort: .bestMatch)
+    )
 
     init(viewModel: SearchViewModel) {
         self.viewModel = viewModel
@@ -45,6 +52,7 @@ final class SearchViewController: UIViewController {
         view.backgroundColor = .systemBackground
 
         setupSearch()
+        setupNavigationBar()
         setupUI()
         setupLayout()
         setupBindings()
@@ -55,9 +63,14 @@ final class SearchViewController: UIViewController {
         navigationItem.hidesSearchBarWhenScrolling = false
 
         searchController.obscuresBackgroundDuringPresentation = false
+        searchController.hidesNavigationBarDuringPresentation = false
         searchController.searchBar.placeholder = L10n.Search.usernamePlaceholder
         searchController.searchBar.searchTextField.accessibilityIdentifier = Constants.searchTextFieldAccessibilityIdentifier
         definesPresentationContext = true
+    }
+
+    private func setupNavigationBar() {
+        navigationItem.rightBarButtonItem = sortBarButtonItem
     }
 
     private func setupUI() {
@@ -105,6 +118,7 @@ final class SearchViewController: UIViewController {
 
         let input = SearchViewModel.Input(
             username: queryText,
+            sortChanged: sortChangedRelay.asObservable(),
             loadNextPage: loadNextPageRelay.asObservable()
         )
 
@@ -179,6 +193,24 @@ final class SearchViewController: UIViewController {
         alertController.addAction(UIAlertAction(title: L10n.Common.okButton, style: .default))
         present(alertController, animated: true)
     }
+
+    fileprivate func updateSortMenu(selectedSort: SearchSort) {
+        sortBarButtonItem.menu = makeSortMenu(selectedSort: selectedSort)
+    }
+
+    private func makeSortMenu(selectedSort: SearchSort) -> UIMenu {
+        UIMenu(
+            title: "",
+            children: SearchSort.allCases.map { sort in
+                UIAction(
+                    title: sort.title,
+                    state: sort == selectedSort ? .on : .off
+                ) { [weak self] _ in
+                    self?.sortChangedRelay.accept(sort)
+                }
+            }
+        )
+    }
 }
 
 // MARK: - Rx Bindings
@@ -187,6 +219,7 @@ private extension Reactive where Base: SearchViewController {
     var searchState: Binder<SearchViewModel.SearchState> {
         Binder(base) { viewController, state in
             viewController.view.bringSubviewToFront(viewController.activityIndicatorView)
+            viewController.updateSortMenu(selectedSort: state.selectedSort)
 
             switch state.phase {
             case .loading:

@@ -263,10 +263,12 @@ final class SearchViewModelTests: XCTestCase {
 
     private func makeInput(
         username: Observable<String>,
+        sortChanged: Observable<SearchSort> = .empty(),
         loadNextPage: Observable<Void> = .empty()
     ) -> SearchViewModel.Input {
         .init(
             username: username,
+            sortChanged: sortChanged,
             loadNextPage: loadNextPage
         )
     }

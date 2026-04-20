@@ -6,6 +6,11 @@
 "search.username.placeholder" = "Enter a GitHub username";
 "search.prompt.message" = "Enter a GitHub username";
 "search.empty.message" = "No public repositories found.";
+"search.sort.button.title" = "Sort";
+"search.sort.best_match" = "Best Match";
+"search.sort.stars" = "Stars";
+"search.sort.updated" = "Updated";
+"search.sort.name" = "Name";
 "search.results.metadata.stars.count" = "★ %d";
 
 "repo.details.title.fallback" = "Repository";

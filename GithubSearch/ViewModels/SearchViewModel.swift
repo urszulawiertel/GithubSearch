@@ -19,6 +19,7 @@ final class SearchViewModel {
 
     struct SearchState: Equatable {
         var query: String
+        var selectedSort: SearchSort
         var repos: [Repo]
         var phase: SearchPhase
         var currentPage: Int
@@ -35,16 +36,22 @@ final class SearchViewModel {
     }
 
     private enum Action {
-        case queryChanged(String)
-        case initialLoaded(query: String, page: RepoPage)
-        case initialFailed(query: String, message: String)
-        case nextPageRequested(query: String)
-        case nextPageLoaded(query: String, pageNumber: Int, page: RepoPage)
-        case nextPageFailed(query: String, message: String)
+        case parametersChanged(SearchParameters)
+        case initialLoaded(parameters: SearchParameters, page: RepoPage)
+        case initialFailed(parameters: SearchParameters, message: String)
+        case nextPageRequested(parameters: SearchParameters)
+        case nextPageLoaded(parameters: SearchParameters, pageNumber: Int, page: RepoPage)
+        case nextPageFailed(parameters: SearchParameters, message: String)
+    }
+
+    fileprivate struct SearchParameters: Equatable {
+        let query: String
+        let sort: SearchSort
     }
 
     struct Input {
         let username: Observable<String>
+        let sortChanged: Observable<SearchSort>
         let loadNextPage: Observable<Void>
     }
 
@@ -73,23 +80,38 @@ final class SearchViewModel {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .distinctUntilChanged()
             .share(replay: 1, scope: .whileConnected)
+        let selectedSort = input.sortChanged
+            .startWith(Self.initialState.selectedSort)
+            .distinctUntilChanged()
+            .share(replay: 1, scope: .whileConnected)
+        let searchParameters = Observable
+            .combineLatest(username, selectedSort) { query, sort in
+                SearchParameters(query: query, sort: sort)
+            }
+            .distinctUntilChanged()
+            .share(replay: 1, scope: .whileConnected)
 
-        let initialActions = username
-            .flatMapLatest { [service, scheduler, debounceInterval] name -> Observable<Action> in
-                guard !name.isEmpty else {
-                    return .just(.queryChanged(""))
+        let initialActions = searchParameters
+            .flatMapLatest { [service, scheduler, debounceInterval] parameters -> Observable<Action> in
+                guard !parameters.query.isEmpty else {
+                    return .just(.parametersChanged(parameters))
                 }
 
-                let loading = Observable.just(Action.queryChanged(name))
+                let loading = Observable.just(Action.parametersChanged(parameters))
 
-                let request = Observable.just(name)
+                let request = Observable.just(parameters)
                     .debounce(debounceInterval, scheduler: scheduler)
-                    .flatMap { query in
-                        service.fetchRepos(username: query, page: 1, perPage: Constants.pageSize)
+                    .flatMap { parameters in
+                        service.fetchRepos(
+                            username: parameters.query,
+                            page: 1,
+                            perPage: Constants.pageSize,
+                            sort: parameters.sort
+                        )
                             .asObservable()
-                            .map { Action.initialLoaded(query: query, page: $0) }
+                            .map { Action.initialLoaded(parameters: parameters, page: $0) }
                             .catch { error in
-                                .just(.initialFailed(query: query, message: Self.mapError(error)))
+                                .just(.initialFailed(parameters: parameters, message: Self.mapError(error)))
                             }
                     }
 
@@ -103,14 +125,19 @@ final class SearchViewModel {
             }
             .flatMapFirst { [service] state -> Observable<Action> in
                 let nextPage = state.currentPage + 1
-                let query = state.query
-                let loading = Observable.just(Action.nextPageRequested(query: query))
+                let parameters = SearchParameters(query: state.query, sort: state.selectedSort)
+                let loading = Observable.just(Action.nextPageRequested(parameters: parameters))
 
-                let request = service.fetchRepos(username: query, page: nextPage, perPage: Constants.pageSize)
+                let request = service.fetchRepos(
+                    username: parameters.query,
+                    page: nextPage,
+                    perPage: Constants.pageSize,
+                    sort: parameters.sort
+                )
                     .asObservable()
-                    .map { Action.nextPageLoaded(query: query, pageNumber: nextPage, page: $0) }
+                    .map { Action.nextPageLoaded(parameters: parameters, pageNumber: nextPage, page: $0) }
                     .catch { error in
-                        .just(.nextPageFailed(query: query, message: Self.mapError(error)))
+                        .just(.nextPageFailed(parameters: parameters, message: Self.mapError(error)))
                     }
 
                 return Observable.concat(loading, request)
@@ -146,6 +173,7 @@ final class SearchViewModel {
     private static var initialState: SearchState {
         SearchState(
             query: "",
+            selectedSort: .bestMatch,
             repos: [],
             phase: .prompt(Constants.promptMessage),
             currentPage: 0,
@@ -156,40 +184,41 @@ final class SearchViewModel {
 
     private static func reduce(state: SearchState, action: Action) -> SearchState {
         switch action {
-        case let .queryChanged(query):
-            return reduceQueryChanged(state: state, query: query)
-        case let .initialLoaded(query, page):
-            return reduceInitialLoaded(state: state, query: query, page: page)
-        case let .initialFailed(query, _):
-            return reduceInitialFailed(state: state, query: query)
-        case let .nextPageRequested(query):
-            return reduceNextPageRequested(state: state, query: query)
-        case let .nextPageLoaded(query, pageNumber, page):
-            return reduceNextPageLoaded(state: state, query: query, pageNumber: pageNumber, page: page)
-        case let .nextPageFailed(query, _):
-            return reduceNextPageFailed(state: state, query: query)
+        case let .parametersChanged(parameters):
+            return reduceParametersChanged(state: state, parameters: parameters)
+        case let .initialLoaded(parameters, page):
+            return reduceInitialLoaded(state: state, parameters: parameters, page: page)
+        case let .initialFailed(parameters, _):
+            return reduceInitialFailed(state: state, parameters: parameters)
+        case let .nextPageRequested(parameters):
+            return reduceNextPageRequested(state: state, parameters: parameters)
+        case let .nextPageLoaded(parameters, pageNumber, page):
+            return reduceNextPageLoaded(state: state, parameters: parameters, pageNumber: pageNumber, page: page)
+        case let .nextPageFailed(parameters, _):
+            return reduceNextPageFailed(state: state, parameters: parameters)
         }
     }
 
-    private static func reduceQueryChanged(state: SearchState, query: String) -> SearchState {
+    private static func reduceParametersChanged(state: SearchState, parameters: SearchParameters) -> SearchState {
         var state = state
 
-        state.query = query
+        state.query = parameters.query
+        state.selectedSort = parameters.sort
         state.repos = []
         state.currentPage = 0
         state.hasMorePages = false
         state.isLoadingNextPage = false
-        state.phase = query.isEmpty
+        state.phase = parameters.query.isEmpty
             ? .prompt(Constants.promptMessage)
             : .loading
 
         return state
     }
 
-    private static func reduceInitialLoaded(state: SearchState, query: String, page: RepoPage) -> SearchState {
+    private static func reduceInitialLoaded(state: SearchState, parameters: SearchParameters, page: RepoPage) -> SearchState {
         var state = state
 
-        guard state.query == query else {
+        guard state.matches(parameters) else {
             return state
         }
         state.repos = page.repos
@@ -203,10 +232,10 @@ final class SearchViewModel {
         return state
     }
 
-    private static func reduceInitialFailed(state: SearchState, query: String) -> SearchState {
+    private static func reduceInitialFailed(state: SearchState, parameters: SearchParameters) -> SearchState {
         var state = state
 
-        guard state.query == query else {
+        guard state.matches(parameters) else {
             return state
         }
         state.repos = []
@@ -218,10 +247,10 @@ final class SearchViewModel {
         return state
     }
 
-    private static func reduceNextPageRequested(state: SearchState, query: String) -> SearchState {
+    private static func reduceNextPageRequested(state: SearchState, parameters: SearchParameters) -> SearchState {
         var state = state
 
-        guard state.query == query, state.hasMorePages else {
+        guard state.matches(parameters), state.hasMorePages else {
             return state
         }
         state.isLoadingNextPage = true
@@ -231,13 +260,13 @@ final class SearchViewModel {
 
     private static func reduceNextPageLoaded(
         state: SearchState,
-        query: String,
+        parameters: SearchParameters,
         pageNumber: Int,
         page: RepoPage
     ) -> SearchState {
         var state = state
 
-        guard state.query == query, state.isLoadingNextPage else {
+        guard state.matches(parameters), state.isLoadingNextPage else {
             return state
         }
         state.repos += page.repos
@@ -251,10 +280,10 @@ final class SearchViewModel {
         return state
     }
 
-    private static func reduceNextPageFailed(state: SearchState, query: String) -> SearchState {
+    private static func reduceNextPageFailed(state: SearchState, parameters: SearchParameters) -> SearchState {
         var state = state
 
-        guard state.query == query else {
+        guard state.matches(parameters) else {
             return state
         }
         state.isLoadingNextPage = false
@@ -269,4 +298,10 @@ final class SearchViewModel {
         return L10n.Common.genericErrorMessage
     }
 
+}
+
+private extension SearchViewModel.SearchState {
+    func matches(_ parameters: SearchViewModel.SearchParameters) -> Bool {
+        query == parameters.query && selectedSort == parameters.sort
+    }
 }

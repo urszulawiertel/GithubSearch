@@ -19,6 +19,11 @@ enum L10n {
         static let usernamePlaceholder = tr("search.username.placeholder")
         static let promptMessage = tr("search.prompt.message")
         static let emptyMessage = tr("search.empty.message")
+        static let sortButtonTitle = tr("search.sort.button.title")
+        static let sortBestMatch = tr("search.sort.best_match")
+        static let sortStars = tr("search.sort.stars")
+        static let sortUpdated = tr("search.sort.updated")
+        static let sortName = tr("search.sort.name")
     }
 
     enum RepoDetails {

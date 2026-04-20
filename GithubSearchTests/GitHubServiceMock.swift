@@ -15,21 +15,25 @@ final class GitHubServiceMock: GitHubServiceType {
     var lastUsername: String?
     var lastPage: Int?
     var lastPerPage: Int?
+    var lastSort: SearchSort?
     var requestedPages: [Int] = []
+    var requestedSorts: [SearchSort] = []
 
     var stubbedPage = RepoPage(repos: [], hasNextPage: false)
     var stubbedError: Error?
-    var fetchReposHandler: ((String, Int, Int) -> Single<RepoPage>)?
+    var fetchReposHandler: ((String, Int, Int, SearchSort) -> Single<RepoPage>)?
 
-    func fetchRepos(username: String, page: Int, perPage: Int) -> Single<RepoPage> {
+    func fetchRepos(username: String, page: Int, perPage: Int, sort: SearchSort) -> Single<RepoPage> {
         fetchReposCallCount += 1
         lastUsername = username
         lastPage = page
         lastPerPage = perPage
+        lastSort = sort
         requestedPages.append(page)
+        requestedSorts.append(sort)
 
         if let fetchReposHandler {
-            return fetchReposHandler(username, page, perPage)
+            return fetchReposHandler(username, page, perPage, sort)
         }
 
         if let stubbedError {

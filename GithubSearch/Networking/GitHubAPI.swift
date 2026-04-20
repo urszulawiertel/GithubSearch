@@ -11,17 +11,23 @@ enum GitHubAPI {
     static func reposURL(
         username: String,
         page: Int = 1,
-        perPage: Int = 50
+        perPage: Int = 50,
+        sort: SearchSort = .bestMatch
     ) -> URL? {
         var components = URLComponents()
         components.scheme = "https"
         components.host = "api.github.com"
         components.path = "/users/\(username)/repos"
-        components.queryItems = [
+        var queryItems = [
             URLQueryItem(name: "page", value: String(page)),
-            URLQueryItem(name: "per_page", value: String(perPage)),
-            URLQueryItem(name: "sort", value: "updated")
+            URLQueryItem(name: "per_page", value: String(perPage))
         ]
+
+        if let sortValue = sort.apiValue {
+            queryItems.append(URLQueryItem(name: "sort", value: sortValue))
+        }
+
+        components.queryItems = queryItems
         return components.url
     }
 }

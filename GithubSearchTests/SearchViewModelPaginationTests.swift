@@ -33,7 +33,7 @@ final class SearchViewModelPaginationTests: XCTestCase {
         let secondPageRepos = [Repo.mock(id: 2, name: "Repo2")]
         let viewModel = makeViewModel(service: service)
 
-        service.fetchReposHandler = { _, page, _ in
+        service.fetchReposHandler = { _, page, _, _ in
             switch page {
             case 1:
                 return .just(RepoPage(repos: firstPageRepos, hasNextPage: true))
@@ -70,7 +70,7 @@ final class SearchViewModelPaginationTests: XCTestCase {
         let microsoftRepos = [Repo.mock(id: 3, name: "MicrosoftRepo")]
         let viewModel = makeViewModel(service: service)
 
-        service.fetchReposHandler = { username, page, _ in
+        service.fetchReposHandler = { username, page, _, _ in
             switch (username, page) {
             case ("apple", 1):
                 return .just(RepoPage(repos: appleRepos, hasNextPage: true))
@@ -118,7 +118,7 @@ final class SearchViewModelPaginationTests: XCTestCase {
         let viewModel = makeViewModel(service: service)
         let scheduler = self.scheduler!
 
-        service.fetchReposHandler = { _, page, _ in
+        service.fetchReposHandler = { _, page, _, _ in
             switch page {
             case 1:
                 return scheduler.createColdObservable([
@@ -187,7 +187,7 @@ final class SearchViewModelPaginationTests: XCTestCase {
         let firstPageRepos = [Repo.mock(id: 1, name: "Repo1")]
         let viewModel = makeViewModel(service: service)
 
-        service.fetchReposHandler = { _, page, _ in
+        service.fetchReposHandler = { _, page, _, _ in
             switch page {
             case 1:
                 return .just(RepoPage(repos: firstPageRepos, hasNextPage: true))
@@ -233,6 +233,119 @@ final class SearchViewModelPaginationTests: XCTestCase {
         XCTAssertEqual(stateObserver.events.compactMap { $0.value.element }, [.prompt(L10n.Search.promptMessage), .loading, .results])
     }
 
+    func test_sortChange_resetsResultsAndRestartsFromPageOne() {
+        let service = GitHubServiceMock()
+        let bestMatchRepos = [Repo.mock(id: 1, name: "BestMatchRepo")]
+        let starsRepos = [Repo.mock(id: 2, name: "StarsRepo")]
+        let viewModel = makeViewModel(service: service)
+
+        service.fetchReposHandler = { _, _, _, sort in
+            switch sort {
+            case .bestMatch:
+                return .just(RepoPage(repos: bestMatchRepos, hasNextPage: true))
+            case .stars:
+                return .just(RepoPage(repos: starsRepos, hasNextPage: false))
+            case .updated, .name:
+                return .just(RepoPage(repos: [], hasNextPage: false))
+            }
+        }
+
+        let output = viewModel.transform(input: makeInput(
+            usernameEvents: [.next(10, "apple")],
+            sortChangedEvents: [.next(700, .stars)]
+        ))
+        let observer = scheduler.createObserver([Repo].self)
+
+        output.state
+            .asObservable()
+            .map(\.repos)
+            .distinctUntilChanged()
+            .subscribe(observer)
+            .disposed(by: disposeBag)
+
+        scheduler.start()
+
+        XCTAssertEqual(service.requestedPages, [1, 1])
+        XCTAssertEqual(service.requestedSorts, [.bestMatch, .stars])
+        XCTAssertEqual(observer.events.compactMap { $0.value.element }, [[], bestMatchRepos, [], starsRepos])
+    }
+
+    func test_loadNextPage_usesSelectedSort() {
+        let service = GitHubServiceMock()
+        let firstPageRepos = [Repo.mock(id: 1, name: "Repo1")]
+        let secondPageRepos = [Repo.mock(id: 2, name: "Repo2")]
+        let viewModel = makeViewModel(service: service)
+
+        service.fetchReposHandler = { _, page, _, _ in
+            switch page {
+            case 1:
+                return .just(RepoPage(repos: firstPageRepos, hasNextPage: true))
+            case 2:
+                return .just(RepoPage(repos: secondPageRepos, hasNextPage: false))
+            default:
+                return .just(RepoPage(repos: [], hasNextPage: false))
+            }
+        }
+
+        let output = viewModel.transform(input: makeInput(
+            usernameEvents: [.next(10, "apple")],
+            sortChangedEvents: [.next(20, .stars)],
+            loadNextPageEvents: [.next(900, ())]
+        ))
+
+        output.state
+            .asObservable()
+            .subscribe()
+            .disposed(by: disposeBag)
+
+        scheduler.start()
+
+        XCTAssertEqual(service.requestedPages, [1, 1, 2])
+        XCTAssertEqual(service.requestedSorts, [.bestMatch, .stars, .stars])
+    }
+
+    func test_staleResponseForPreviousSortDoesNotReplaceCurrentResults() {
+        let service = GitHubServiceMock()
+        let bestMatchRepos = [Repo.mock(id: 1, name: "BestMatchRepo")]
+        let starsRepos = [Repo.mock(id: 2, name: "StarsRepo")]
+        let viewModel = makeViewModel(service: service)
+        let scheduler = self.scheduler!
+
+        service.fetchReposHandler = { _, _, _, sort in
+            switch sort {
+            case .bestMatch:
+                return scheduler.createColdObservable([
+                    .next(1_000, RepoPage(repos: bestMatchRepos, hasNextPage: false)),
+                    .completed(1_000)
+                ]).asSingle()
+            case .stars:
+                return scheduler.createColdObservable([
+                    .next(10, RepoPage(repos: starsRepos, hasNextPage: false)),
+                    .completed(10)
+                ]).asSingle()
+            case .updated, .name:
+                return .just(RepoPage(repos: [], hasNextPage: false))
+            }
+        }
+
+        let output = viewModel.transform(input: makeInput(
+            usernameEvents: [.next(10, "apple")],
+            sortChangedEvents: [.next(500, .stars)]
+        ))
+        let observer = scheduler.createObserver([Repo].self)
+
+        output.state
+            .asObservable()
+            .map(\.repos)
+            .distinctUntilChanged()
+            .subscribe(observer)
+            .disposed(by: disposeBag)
+
+        scheduler.start()
+
+        XCTAssertEqual(observer.events.compactMap { $0.value.element }, [[], starsRepos])
+    }
+
     private func makeViewModel(service: GitHubServiceMock) -> SearchViewModel {
         SearchViewModel(
             service: service,
@@ -243,13 +356,16 @@ final class SearchViewModelPaginationTests: XCTestCase {
 
     private func makeInput(
         usernameEvents: [Recorded<Event<String>>],
+        sortChangedEvents: [Recorded<Event<SearchSort>>] = [],
         loadNextPageEvents: [Recorded<Event<Void>>] = []
     ) -> SearchViewModel.Input {
         let username = scheduler.createHotObservable(usernameEvents).asObservable()
+        let sortChanged = scheduler.createHotObservable(sortChangedEvents).asObservable()
         let loadNextPage = scheduler.createHotObservable(loadNextPageEvents).asObservable()
 
         return .init(
             username: username,
+            sortChanged: sortChanged,
             loadNextPage: loadNextPage
         )
     }

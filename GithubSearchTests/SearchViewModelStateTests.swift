@@ -148,6 +148,7 @@ final class SearchViewModelStateTests: XCTestCase {
 
         return .init(
             username: username,
+            sortChanged: .empty(),
             loadNextPage: .empty()
         )
     }
