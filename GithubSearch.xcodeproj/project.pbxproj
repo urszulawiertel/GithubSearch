@@ -24,7 +24,6 @@
 		756E1A0F2F5F20A50091B2CD /* GitHubServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 756E1A0D2F5F20A50091B2CD /* GitHubServiceTests.swift */; };
 		756E1A102F5F20A50091B2CD /* NetworkClientMock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 756E1A0E2F5F20A50091B2CD /* NetworkClientMock.swift */; };
 		757F7D572F44F9D800F16F6E /* Repo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 757F7D562F44F9D800F16F6E /* Repo.swift */; };
-		75B6C0023000000000ABCDEF /* SearchSort.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75B6C0013000000000ABCDEF /* SearchSort.swift */; };
 		757F7D5D2F44FA7600F16F6E /* GitHubAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 757F7D5C2F44FA7600F16F6E /* GitHubAPI.swift */; };
 		757F7D5F2F44FA9C00F16F6E /* NetworkClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 757F7D5E2F44FA9C00F16F6E /* NetworkClient.swift */; };
 		757F7D622F44FAE000F16F6E /* GitHubService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 757F7D612F44FAE000F16F6E /* GitHubService.swift */; };
@@ -38,6 +37,7 @@
 		75AA0D452F435DE500B7FEFD /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 75AA0D432F435DE500B7FEFD /* LaunchScreen.storyboard */; };
 		75AA0D5A2F435DE600B7FEFD /* GithubSearchUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75AA0D592F435DE600B7FEFD /* GithubSearchUITests.swift */; };
 		75AA0D5C2F435DE600B7FEFD /* GithubSearchUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75AA0D5B2F435DE600B7FEFD /* GithubSearchUITestsLaunchTests.swift */; };
+		75B6C0023000000000ABCDEF /* SearchSort.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75B6C0013000000000ABCDEF /* SearchSort.swift */; };
 		75C987B62F4DFEC00031A9A8 /* SearchViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75C987B52F4DFEC00031A9A8 /* SearchViewModelTests.swift */; };
 		75D4D8832FF24D2E00C0D123 /* ImageLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75D4D8822FF24D2E00C0D123 /* ImageLoader.swift */; };
 		75D4D8852FF24F6400C0D123 /* ImageLoaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75D4D8842FF24F6400C0D123 /* ImageLoaderTests.swift */; };
@@ -85,7 +85,6 @@
 		756E1A0D2F5F20A50091B2CD /* GitHubServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubServiceTests.swift; sourceTree = "<group>"; };
 		756E1A0E2F5F20A50091B2CD /* NetworkClientMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkClientMock.swift; sourceTree = "<group>"; };
 		757F7D562F44F9D800F16F6E /* Repo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Repo.swift; sourceTree = "<group>"; };
-		75B6C0013000000000ABCDEF /* SearchSort.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSort.swift; sourceTree = "<group>"; };
 		757F7D5C2F44FA7600F16F6E /* GitHubAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubAPI.swift; sourceTree = "<group>"; };
 		757F7D5E2F44FA9C00F16F6E /* NetworkClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkClient.swift; sourceTree = "<group>"; };
 		757F7D612F44FAE000F16F6E /* GitHubService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubService.swift; sourceTree = "<group>"; };
@@ -103,6 +102,7 @@
 		75AA0D552F435DE600B7FEFD /* GithubSearchUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GithubSearchUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		75AA0D592F435DE600B7FEFD /* GithubSearchUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GithubSearchUITests.swift; sourceTree = "<group>"; };
 		75AA0D5B2F435DE600B7FEFD /* GithubSearchUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GithubSearchUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		75B6C0013000000000ABCDEF /* SearchSort.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchSort.swift; sourceTree = "<group>"; };
 		75C987B52F4DFEC00031A9A8 /* SearchViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchViewModelTests.swift; sourceTree = "<group>"; };
 		75D4D8822FF24D2E00C0D123 /* ImageLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageLoader.swift; sourceTree = "<group>"; };
 		75D4D8842FF24F6400C0D123 /* ImageLoaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageLoaderTests.swift; sourceTree = "<group>"; };
@@ -783,7 +783,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.gmail.urszulawiertel.GithubSearch;
+				PRODUCT_BUNDLE_IDENTIFIER = com.urszulawiertel.GithubSearch;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -812,7 +812,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.gmail.urszulawiertel.GithubSearch;
+				PRODUCT_BUNDLE_IDENTIFIER = com.urszulawiertel.GithubSearch;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -831,7 +831,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.gmail.urszulawiertel.GithubSearchTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.urszulawiertel.GithubSearchTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -851,7 +851,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.gmail.urszulawiertel.GithubSearchTests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.urszulawiertel.GithubSearchTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -869,7 +869,7 @@
 				DEVELOPMENT_TEAM = NKX4Y6CAJV;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.gmail.urszulawiertel.GithubSearchUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.urszulawiertel.GithubSearchUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -887,7 +887,7 @@
 				DEVELOPMENT_TEAM = NKX4Y6CAJV;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.gmail.urszulawiertel.GithubSearchUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.urszulawiertel.GithubSearchUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
