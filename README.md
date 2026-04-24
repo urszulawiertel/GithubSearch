@@ -147,3 +147,6 @@ open GithubSearch.xcworkspace
 3. Build and run the `GithubSearch` scheme in Xcode.
 
 To run tests, use the `GithubSearchTests` target from Xcode.
+
+## Support
+If you have any issues, contact: urszulawiertel@gmail.com
