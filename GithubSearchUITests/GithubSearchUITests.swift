@@ -65,7 +65,7 @@ final class GithubSearchUITests: XCTestCase {
 
         let openOnGitHubButton = app.buttons[AccessibilityID.detailsOpenButton]
         XCTAssertTrue(openOnGitHubButton.exists)
-        XCTAssertEqual(openOnGitHubButton.label, "Open on GitHub")
+        XCTAssertEqual(openOnGitHubButton.label, "Open in browser")
     }
 
     func testSearchingUsernameWithNoRepositoriesShowsEmptyState() throws {

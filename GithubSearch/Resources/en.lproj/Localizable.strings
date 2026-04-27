@@ -3,8 +3,8 @@
 "common.error.message.generic" = "Something went wrong. Please try again.";
 
 "search.navigation.title" = "User Repositories";
-"search.username.placeholder" = "Enter a GitHub username";
-"search.prompt.message" = "Enter a GitHub username";
+"search.username.placeholder" = "Enter a username";
+"search.prompt.message" = "Enter a username";
 "search.empty.message" = "No public repositories found.";
 "search.sort.button.title" = "Sort";
 "search.sort.best_match" = "Best Match";
@@ -21,12 +21,12 @@
 "repo.details.stars.title" = "Stars";
 "repo.details.stars.fallback" = "No stars yet";
 "repo.details.stars.count" = "★ %@";
-"repo.details.open.button.title" = "Open on GitHub";
-"repo.details.open.button.hint" = "Opens the repository in GitHub.";
+"repo.details.open.button.title" = "Open in browser";
+"repo.details.open.button.hint" = "Opens the repository in browser.";
 "repo.details.avatar.accessibility.fallback" = "Repository owner avatar";
 "repo.details.avatar.accessibility.label" = "Avatar for %@";
 
-"github.error.invalid_username" = "Enter a valid GitHub username.";
-"github.error.user_not_found" = "We couldn't find that GitHub user.";
+"github.error.invalid_username" = "Enter a valid username.";
+"github.error.user_not_found" = "We couldn't find that user.";
 "github.error.connectivity" = "You're offline right now. Check your internet connection and try again.";
-"github.error.rate_limited" = "GitHub is receiving too many requests right now. Please wait a moment and try again.";
+"github.error.rate_limited" = "Too many requests. Please try again later.";
