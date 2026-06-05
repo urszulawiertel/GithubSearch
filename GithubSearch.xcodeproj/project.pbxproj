@@ -773,6 +773,7 @@
 				DEVELOPMENT_TEAM = NKX4Y6CAJV;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = GithubSearch/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Repo Search";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -802,6 +803,7 @@
 				DEVELOPMENT_TEAM = NKX4Y6CAJV;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = GithubSearch/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Repo Search";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
