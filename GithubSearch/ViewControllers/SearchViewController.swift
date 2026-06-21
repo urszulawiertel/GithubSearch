@@ -28,6 +28,7 @@ final class SearchViewController: UIViewController {
     fileprivate let activityIndicatorView = UIActivityIndicatorView(style: .medium)
     fileprivate let emptyStateLabel = UILabel()
 
+    private let loadingVisibleAreaLayoutGuide = UILayoutGuide()
     private let searchController = UISearchController(searchResultsController: nil)
     private let sortChangedRelay = PublishRelay<SearchSort>()
     private lazy var sortBarButtonItem = UIBarButtonItem(
@@ -92,6 +93,7 @@ final class SearchViewController: UIViewController {
         emptyStateLabel.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         resultsTableView.backgroundView = emptyStateLabel
 
+        view.addLayoutGuide(loadingVisibleAreaLayoutGuide)
         view.addSubview(resultsTableView)
 
         activityIndicatorView.hidesWhenStopped = true
@@ -106,8 +108,14 @@ final class SearchViewController: UIViewController {
             $0.edges.equalTo(view.safeAreaLayoutGuide)
         }
 
+        loadingVisibleAreaLayoutGuide.snp.makeConstraints {
+            $0.top.leading.trailing.equalTo(resultsTableView)
+            $0.bottom.equalTo(view.keyboardLayoutGuide.snp.top)
+        }
+
         activityIndicatorView.snp.makeConstraints {
-            $0.center.equalToSuperview()
+            $0.centerX.equalToSuperview()
+            $0.centerY.equalTo(loadingVisibleAreaLayoutGuide.snp.centerY)
         }
     }
 
