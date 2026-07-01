@@ -15,7 +15,7 @@ final class GitHubServiceTests: XCTestCase {
         let client = NetworkClientMock()
         let service = GitHubService(client: client)
         let url = try XCTUnwrap(GitHubAPI.reposURL(username: "octocat", page: 2, perPage: 25))
-        let data = """
+        let data = Data("""
         [
           {
             "id": 1,
@@ -31,7 +31,7 @@ final class GitHubServiceTests: XCTestCase {
             }
           }
         ]
-        """.data(using: .utf8)!
+        """.utf8)
         client.stubbedResult = .success((.mock(url: url, statusCode: 200, headerFields: [
             "Link": #"<https://api.github.com/users/octocat/repos?page=3&per_page=25>; rel="next""#
         ]), data))
@@ -62,7 +62,7 @@ final class GitHubServiceTests: XCTestCase {
     func test_fetchRepos_returnsDecodingErrorForInvalidPayload() {
         let client = NetworkClientMock()
         let service = GitHubService(client: client)
-        let data = #"{"unexpected":true}"#.data(using: .utf8)!
+        let data = Data(#"{"unexpected":true}"#.utf8)
         client.stubbedResult = .success((.mock(statusCode: 200), data))
 
         XCTAssertThrowsError(
@@ -77,7 +77,7 @@ final class GitHubServiceTests: XCTestCase {
     func test_fetchRepos_marksNoNextPageWhenLinkHeaderIsMissing() throws {
         let client = NetworkClientMock()
         let service = GitHubService(client: client)
-        let data = "[]".data(using: .utf8)!
+        let data = Data("[]".utf8)
         client.stubbedResult = .success((.mock(statusCode: 200), data))
 
         let page = try service.fetchRepos(username: "octocat", page: 1, perPage: 50)
@@ -146,7 +146,7 @@ final class GitHubServiceTests: XCTestCase {
     func test_fetchRepos_marksNoNextPageWhenLinkHeaderHasNoNextRelation() throws {
         let client = NetworkClientMock()
         let service = GitHubService(client: client)
-        let data = "[]".data(using: .utf8)!
+        let data = Data("[]".utf8)
         client.stubbedResult = .success((.mock(statusCode: 200, headerFields: [
             "Link": #"<https://api.github.com/users/octocat/repos?page=2&per_page=50>; rel="last""#
         ]), data))
