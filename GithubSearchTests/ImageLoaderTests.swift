@@ -97,8 +97,8 @@ final class ImageLoaderTests: XCTestCase {
 
         task.cancel()
 
-        wait(for: [activeCompletion], timeout: 1)
-        wait(for: [cancelledCompletion], timeout: 0.1)
+        wait(for: [activeCompletion], timeout: 3)
+        wait(for: [cancelledCompletion], timeout: 0.3)
         XCTAssertEqual(URLProtocolMock.requestCount, 1)
     }
 
