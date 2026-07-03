@@ -20,6 +20,11 @@ final class SearchViewController: UIViewController {
     }
 
     let onRepoSelected = PublishRelay<Repo>()
+    #if DEBUG
+    /// DEBUG-only navigation event for the debug menu. Release builds do not
+    /// expose this relay or the button that triggers it.
+    let onDebugSelected = PublishRelay<Void>()
+    #endif
 
     private let disposeBag = DisposeBag()
     private let viewModel: SearchViewModel
@@ -71,7 +76,21 @@ final class SearchViewController: UIViewController {
     }
 
     private func setupNavigationBar() {
+        #if DEBUG
+        // DEBUG-only navigation item that is compiled out of Release builds.
+        let debugBarButtonItem = UIBarButtonItem(
+            title: "Debug",
+            style: .plain,
+            target: nil,
+            action: nil
+        )
+        debugBarButtonItem.rx.tap
+            .bind(to: onDebugSelected)
+            .disposed(by: disposeBag)
+        navigationItem.rightBarButtonItems = [sortBarButtonItem, debugBarButtonItem]
+        #else
         navigationItem.rightBarButtonItem = sortBarButtonItem
+        #endif
     }
 
     private func setupUI() {

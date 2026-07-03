@@ -30,6 +30,14 @@ final class ImageLoader: ImageLoading {
         self.session = session
     }
 
+    #if DEBUG
+    /// DEBUG-only hook used by the debug menu to clear the app's in-memory
+    /// image cache. This API is compiled out of Release builds.
+    func clearCache() {
+        cache.removeAllObjects()
+    }
+    #endif
+
     @discardableResult
     func loadImage(from url: URL, completion: @escaping (UIImage?) -> Void) -> ImageLoadingTask {
         let token = TaskToken(completion: completion)

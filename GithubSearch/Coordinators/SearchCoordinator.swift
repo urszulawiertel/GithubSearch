@@ -24,6 +24,16 @@ final class SearchCoordinator: NavigationCoordinator {
             })
             .disposed(by: disposeBag)
 
+        #if DEBUG
+        // DEBUG-only route to the debug menu. This subscription and destination
+        // view controller are removed from Release builds by the compiler.
+        viewController.onDebugSelected
+            .subscribe(onNext: { [weak self] in
+                self?.showDebugMenu()
+            })
+            .disposed(by: disposeBag)
+        #endif
+
         navigationController.setViewControllers([viewController], animated: false)
     }
 
@@ -43,4 +53,10 @@ final class SearchCoordinator: NavigationCoordinator {
     private func removeChildCoordinator(_ coordinator: Coordinator) {
         childCoordinators.removeAll { $0 === coordinator }
     }
+
+    #if DEBUG
+    private func showDebugMenu() {
+        navigationController.pushViewController(DebugViewController(), animated: true)
+    }
+    #endif
 }

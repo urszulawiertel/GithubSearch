@@ -16,10 +16,24 @@ enum AppLaunchEnvironment {
 
     static func makeGitHubService() -> GitHubServiceType {
         guard let scenario = UITestScenario(rawValue: ProcessInfo.processInfo.environment[Key.uiTestScenario] ?? "") else {
-            return GitHubService()
+            return makeDefaultGitHubService()
         }
 
-        return UITestGitHubService(scenario: scenario)
+        return makeDebuggableService(wrapping: UITestGitHubService(scenario: scenario))
+    }
+
+    private static func makeDefaultGitHubService() -> GitHubServiceType {
+        makeDebuggableService(wrapping: GitHubService())
+    }
+
+    private static func makeDebuggableService(wrapping service: GitHubServiceType) -> GitHubServiceType {
+        #if DEBUG
+        // DEBUG-only service decoration keeps forced debug responses out of
+        // SearchViewModel and compiles away entirely in Release builds.
+        return DebugGitHubService(wrappedService: service)
+        #else
+        return service
+        #endif
     }
 }
 

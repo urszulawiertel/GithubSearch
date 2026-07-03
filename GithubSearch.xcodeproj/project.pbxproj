@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		740D00042FF9000000D00B00 /* DebugSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 740D00012FF9000000D00B00 /* DebugSettings.swift */; };
+		740D00052FF9000000D00B00 /* DebugGitHubService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 740D00022FF9000000D00B00 /* DebugGitHubService.swift */; };
+		740D00062FF9000000D00B00 /* DebugViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 740D00032FF9000000D00B00 /* DebugViewController.swift */; };
 		7499C1012FF23A1100A1C901 /* AppLaunchEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7499C1002FF23A1100A1C901 /* AppLaunchEnvironment.swift */; };
 		749F0C552FF286B90056A1C9 /* AvatarImagePresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 749F0C542FF286B90056A1C9 /* AvatarImagePresenter.swift */; };
 		74C0DE6B2FF2A10000A1C901 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74C0DE6A2FF2A10000A1C901 /* L10n.swift */; };
@@ -66,6 +69,9 @@
 /* Begin PBXFileReference section */
 		2EC3267020B03BE6F18FF159 /* Pods-GithubSearchTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-GithubSearchTests.release.xcconfig"; path = "Target Support Files/Pods-GithubSearchTests/Pods-GithubSearchTests.release.xcconfig"; sourceTree = "<group>"; };
 		41796EE388346537EC1F301B /* Pods_GithubSearch.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_GithubSearch.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		740D00012FF9000000D00B00 /* DebugSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugSettings.swift; sourceTree = "<group>"; };
+		740D00022FF9000000D00B00 /* DebugGitHubService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugGitHubService.swift; sourceTree = "<group>"; };
+		740D00032FF9000000D00B00 /* DebugViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugViewController.swift; sourceTree = "<group>"; };
 		7499C1002FF23A1100A1C901 /* AppLaunchEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLaunchEnvironment.swift; sourceTree = "<group>"; };
 		749F0C542FF286B90056A1C9 /* AvatarImagePresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarImagePresenter.swift; sourceTree = "<group>"; };
 		74C0DE6A2FF2A10000A1C901 /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
@@ -149,6 +155,16 @@
 				E3E685C2B4DB46E4775B34A5 /* Pods_GithubSearchTests.framework */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		740D00002FF9000000D00B00 /* Debug */ = {
+			isa = PBXGroup;
+			children = (
+				740D00022FF9000000D00B00 /* DebugGitHubService.swift */,
+				740D00012FF9000000D00B00 /* DebugSettings.swift */,
+				740D00032FF9000000D00B00 /* DebugViewController.swift */,
+			);
+			path = Debug;
 			sourceTree = "<group>";
 		};
 		753949802F47772F00E65D87 /* App */ = {
@@ -262,6 +278,7 @@
 			children = (
 				753949802F47772F00E65D87 /* App */,
 				753949812F47774A00E65D87 /* Coordinators */,
+				740D00002FF9000000D00B00 /* Debug */,
 				757F7D552F44F9BF00F16F6E /* Models */,
 				757F7D582F44FA0000F16F6E /* Networking */,
 				757F7D602F44FACE00F16F6E /* Services */,
@@ -461,9 +478,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-GithubSearch/Pods-GithubSearch-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-GithubSearch/Pods-GithubSearch-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -540,9 +561,13 @@
 			inputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-GithubSearchTests/Pods-GithubSearchTests-frameworks-${CONFIGURATION}-input-files.xcfilelist",
 			);
+			inputPaths = (
+			);
 			name = "[CP] Embed Pods Frameworks";
 			outputFileListPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-GithubSearchTests/Pods-GithubSearchTests-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -559,8 +584,10 @@
 				7499C1012FF23A1100A1C901 /* AppLaunchEnvironment.swift in Sources */,
 				749F0C552FF286B90056A1C9 /* AvatarImagePresenter.swift in Sources */,
 				74C0DE6B2FF2A10000A1C901 /* L10n.swift in Sources */,
+				740D00052FF9000000D00B00 /* DebugGitHubService.swift in Sources */,
 				750C8FCB2FDC2A9000A1C901 /* RepositoryCell.swift in Sources */,
 				7539497D2F47722900E65D87 /* SearchCoordinator.swift in Sources */,
+				740D00042FF9000000D00B00 /* DebugSettings.swift in Sources */,
 				756D48952F4764800061A2EF /* RepoDetailsViewController.swift in Sources */,
 				753949792F47714F00E65D87 /* Coordinator.swift in Sources */,
 				757F7D5D2F44FA7600F16F6E /* GitHubAPI.swift in Sources */,
@@ -570,6 +597,7 @@
 				7539497F2F47725B00E65D87 /* RepoDetailsCoordinator.swift in Sources */,
 				7539497B2F4771A300E65D87 /* AppCoordinator.swift in Sources */,
 				75AA0D3D2F435DE300B7FEFD /* SearchViewController.swift in Sources */,
+				740D00062FF9000000D00B00 /* DebugViewController.swift in Sources */,
 				757F7D572F44F9D800F16F6E /* Repo.swift in Sources */,
 				75B6C0023000000000ABCDEF /* SearchSort.swift in Sources */,
 				757F7D5F2F44FA9C00F16F6E /* NetworkClient.swift in Sources */,
