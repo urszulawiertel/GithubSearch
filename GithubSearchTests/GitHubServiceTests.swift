@@ -157,4 +157,143 @@ final class GitHubServiceTests: XCTestCase {
 
         XCTAssertFalse(page.hasNextPage)
     }
+
+    func test_fetchLanguages_decodesAndSortsLanguagePercentages() throws {
+        let client = NetworkClientMock()
+        let service = GitHubService(client: client)
+        let url = try XCTUnwrap(GitHubAPI.languagesURL(owner: "octocat", repo: "Hello-World"))
+        client.stubbedResult = .success((.mock(url: url, statusCode: 200), Data("""
+        {
+          "Swift": 300,
+          "Ruby": 100
+        }
+        """.utf8)))
+
+        let languages = try service.fetchLanguages(owner: "octocat", repo: "Hello-World")
+            .toBlocking(timeout: 1)
+            .single()
+
+        XCTAssertEqual(client.lastURL, url)
+        XCTAssertEqual(languages, [
+            RepositoryLanguage(name: "Swift", bytes: 300, percentage: 75),
+            RepositoryLanguage(name: "Ruby", bytes: 100, percentage: 25)
+        ])
+    }
+
+    func test_fetchLanguages_returnsCachedValueOnSecondRequest() throws {
+        let client = NetworkClientMock()
+        let service = GitHubService(client: client)
+        client.stubbedResult = .success((.mock(statusCode: 200), Data(#"{"Swift":100}"#.utf8)))
+
+        _ = try service.fetchLanguages(owner: "octocat", repo: "Hello-World")
+            .toBlocking(timeout: 1)
+            .single()
+        _ = try service.fetchLanguages(owner: "octocat", repo: "Hello-World")
+            .toBlocking(timeout: 1)
+            .single()
+
+        XCTAssertEqual(client.getCallCount, 1)
+    }
+
+    func test_fetchLanguages_forceRefreshBypassesCache() throws {
+        let client = NetworkClientMock()
+        let service = GitHubService(client: client)
+        client.stubbedResult = .success((.mock(statusCode: 200), Data(#"{"Swift":100}"#.utf8)))
+
+        _ = try service.fetchLanguages(owner: "octocat", repo: "Hello-World")
+            .toBlocking(timeout: 1)
+            .single()
+        _ = try service.fetchLanguages(owner: "octocat", repo: "Hello-World", forceRefresh: true)
+            .toBlocking(timeout: 1)
+            .single()
+
+        XCTAssertEqual(client.getCallCount, 2)
+    }
+
+    func test_fetchReadme_decodesBase64Content() throws {
+        let client = NetworkClientMock()
+        let service = GitHubService(client: client)
+        let content = Data("# Hello\n\nREADME body".utf8).base64EncodedString()
+        client.stubbedResult = .success((.mock(statusCode: 200), Data("""
+        {
+          "content": "\(content)",
+          "encoding": "base64"
+        }
+        """.utf8)))
+
+        let readme = try service.fetchReadme(owner: "octocat", repo: "Hello-World")
+            .toBlocking(timeout: 1)
+            .single()
+
+        XCTAssertEqual(readme, RepositoryReadme(text: "# Hello\n\nREADME body"))
+    }
+
+    func test_fetchReadme_returnsCachedValueOnSecondRequest() throws {
+        let client = NetworkClientMock()
+        let service = GitHubService(client: client)
+        let content = Data("README body".utf8).base64EncodedString()
+        client.stubbedResult = .success((.mock(statusCode: 200), Data("""
+        {
+          "content": "\(content)",
+          "encoding": "base64"
+        }
+        """.utf8)))
+
+        _ = try service.fetchReadme(owner: "octocat", repo: "Hello-World")
+            .toBlocking(timeout: 1)
+            .single()
+        _ = try service.fetchReadme(owner: "octocat", repo: "Hello-World")
+            .toBlocking(timeout: 1)
+            .single()
+
+        XCTAssertEqual(client.getCallCount, 1)
+    }
+
+    func test_fetchReadme_returnsNilFor404() throws {
+        let client = NetworkClientMock()
+        let service = GitHubService(client: client)
+        client.stubbedResult = .success((.mock(statusCode: 404), Data()))
+
+        let readme = try service.fetchReadme(owner: "octocat", repo: "Hello-World")
+            .toBlocking(timeout: 1)
+            .single()
+
+        XCTAssertNil(readme)
+    }
+
+    func test_fetchLatestRelease_decodesRelease() throws {
+        let client = NetworkClientMock()
+        let service = GitHubService(client: client)
+        client.stubbedResult = .success((.mock(statusCode: 200), Data("""
+        {
+          "name": "Version 1.0",
+          "tag_name": "v1.0",
+          "published_at": "2026-04-05T10:00:00Z",
+          "body": "Release notes"
+        }
+        """.utf8)))
+
+        let release = try service.fetchLatestRelease(owner: "octocat", repo: "Hello-World")
+            .toBlocking(timeout: 1)
+            .single()
+
+        XCTAssertEqual(release, RepositoryRelease(
+            name: "Version 1.0",
+            tagName: "v1.0",
+            publishedAt: GitHubDateParser.date(from: "2026-04-05T10:00:00Z"),
+            body: "Release notes"
+        ))
+    }
+
+    func test_fetchLatestRelease_returnsNilFor404() throws {
+        let client = NetworkClientMock()
+        let service = GitHubService(client: client)
+        client.stubbedResult = .success((.mock(statusCode: 404), Data()))
+
+        let release = try service.fetchLatestRelease(owner: "octocat", repo: "Hello-World")
+            .toBlocking(timeout: 1)
+            .single()
+
+        XCTAssertNil(release)
+    }
 }

@@ -34,5 +34,17 @@ final class DebugGitHubService: GitHubServiceType {
             return .error(GitHubServiceError.connectivity)
         }
     }
+
+    func fetchLanguages(owner: String, repo: String, forceRefresh: Bool) -> Single<[RepositoryLanguage]> {
+        wrappedService.fetchLanguages(owner: owner, repo: repo, forceRefresh: forceRefresh)
+    }
+
+    func fetchReadme(owner: String, repo: String, forceRefresh: Bool) -> Single<RepositoryReadme?> {
+        wrappedService.fetchReadme(owner: owner, repo: repo, forceRefresh: forceRefresh)
+    }
+
+    func fetchLatestRelease(owner: String, repo: String) -> Single<RepositoryRelease?> {
+        wrappedService.fetchLatestRelease(owner: owner, repo: repo)
+    }
 }
 #endif
