@@ -5,13 +5,13 @@
       location = "group:GithubSearch.xctestplan">
    </FileRef>
    <FileRef
+      location = "group:GithubSearch.xcodeproj">
+   </FileRef>
+   <FileRef
       location = "group:GithubSearchTests">
    </FileRef>
    <FileRef
       location = "group:GithubSearchUITests">
-   </FileRef>
-   <FileRef
-      location = "group:GithubSearch.xcodeproj">
    </FileRef>
    <FileRef
       location = "group:Pods/Pods.xcodeproj">

@@ -67,7 +67,7 @@ final class SearchViewModel {
     init(
         service: GitHubServiceType = GitHubService(),
         scheduler: SchedulerType = MainScheduler.instance,
-        debounceInterval: RxTimeInterval = .milliseconds(400)
+        debounceInterval: RxTimeInterval = .milliseconds(500)
     ) {
         self.service = service
         self.scheduler = scheduler
@@ -76,8 +76,16 @@ final class SearchViewModel {
 
     func transform(input: Input) -> Output {
         let stateRelay = BehaviorRelay(value: Self.initialState)
-        let username = input.username
+        let normalizedUsername = input.username
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .distinctUntilChanged()
+            .share(replay: 1, scope: .whileConnected)
+        let username = Observable.merge(
+            normalizedUsername.filter(\.isEmpty),
+            normalizedUsername
+                .debounce(debounceInterval, scheduler: scheduler)
+                .filter { !$0.isEmpty }
+        )
             .distinctUntilChanged()
             .share(replay: 1, scope: .whileConnected)
         let selectedSort = input.sortChanged
@@ -92,30 +100,26 @@ final class SearchViewModel {
             .share(replay: 1, scope: .whileConnected)
 
         let initialActions = searchParameters
-            .flatMapLatest { [service, scheduler, debounceInterval] parameters -> Observable<Action> in
+            .flatMapLatest { [service] parameters -> Observable<Action> in
                 guard !parameters.query.isEmpty else {
                     return .just(.parametersChanged(parameters))
                 }
 
-                let loading = Observable.just(Action.parametersChanged(parameters))
+                let request = Observable.deferred {
+                    service.fetchRepos(
+                        username: parameters.query,
+                        page: 1,
+                        perPage: Constants.pageSize,
+                        sort: parameters.sort
+                    )
+                        .asObservable()
+                        .map { Action.initialLoaded(parameters: parameters, page: $0) }
+                        .catch { error in
+                            .just(.initialFailed(parameters: parameters, message: Self.mapError(error)))
+                        }
+                }
 
-                let request = Observable.just(parameters)
-                    .debounce(debounceInterval, scheduler: scheduler)
-                    .flatMap { parameters in
-                        service.fetchRepos(
-                            username: parameters.query,
-                            page: 1,
-                            perPage: Constants.pageSize,
-                            sort: parameters.sort
-                        )
-                            .asObservable()
-                            .map { Action.initialLoaded(parameters: parameters, page: $0) }
-                            .catch { error in
-                                .just(.initialFailed(parameters: parameters, message: Self.mapError(error)))
-                            }
-                    }
-
-                return Observable.concat(loading, request)
+                return Observable.concat(.just(.parametersChanged(parameters)), request)
             }
 
         let nextPageActions = input.loadNextPage

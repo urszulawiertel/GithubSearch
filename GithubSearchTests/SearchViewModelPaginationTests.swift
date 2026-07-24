@@ -18,7 +18,7 @@ final class SearchViewModelPaginationTests: XCTestCase {
     override func setUp() {
         super.setUp()
         disposeBag = DisposeBag()
-        scheduler = TestScheduler(initialClock: 0)
+        scheduler = TestScheduler(initialClock: 0, resolution: 0.001)
     }
 
     override func tearDown() {
@@ -238,8 +238,12 @@ final class SearchViewModelPaginationTests: XCTestCase {
         let bestMatchRepos = [Repo.mock(id: 1, name: "BestMatchRepo")]
         let starsRepos = [Repo.mock(id: 2, name: "StarsRepo")]
         let viewModel = makeViewModel(service: service)
+        var requestTimes: [Int] = []
+        let scheduler = self.scheduler!
 
         service.fetchReposHandler = { _, _, _, sort in
+            requestTimes.append(scheduler.clock)
+
             switch sort {
             case .bestMatch:
                 return .just(RepoPage(repos: bestMatchRepos, hasNextPage: true))
@@ -267,6 +271,7 @@ final class SearchViewModelPaginationTests: XCTestCase {
 
         XCTAssertEqual(service.requestedPages, [1, 1])
         XCTAssertEqual(service.requestedSorts, [.bestMatch, .stars])
+        XCTAssertEqual(requestTimes, [410, 700])
         XCTAssertEqual(observer.events.compactMap { $0.value.element }, [[], bestMatchRepos, [], starsRepos])
     }
 
@@ -300,8 +305,8 @@ final class SearchViewModelPaginationTests: XCTestCase {
 
         scheduler.start()
 
-        XCTAssertEqual(service.requestedPages, [1, 1, 2])
-        XCTAssertEqual(service.requestedSorts, [.bestMatch, .stars, .stars])
+        XCTAssertEqual(service.requestedPages, [1, 2])
+        XCTAssertEqual(service.requestedSorts, [.stars, .stars])
     }
 
     func test_staleResponseForPreviousSortDoesNotReplaceCurrentResults() {

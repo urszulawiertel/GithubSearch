@@ -19,7 +19,7 @@ final class SearchViewModelTests: XCTestCase {
     override func setUp() {
         super.setUp()
         disposeBag = DisposeBag()
-        scheduler = TestScheduler(initialClock: 0)
+        scheduler = TestScheduler(initialClock: 0, resolution: 0.001)
     }
 
     override func tearDown() {
@@ -28,37 +28,65 @@ final class SearchViewModelTests: XCTestCase {
         super.tearDown()
     }
 
-    func test_debounce_keepsLatestRequestAfterTyping() {
+    func test_debounce_requestsOnlyLatestUsername_andTracksLoadingAtRequestBoundary() {
         let service = GitHubServiceMock()
-        service.stubbedPage = RepoPage(repos: [Repo.mock(name: "A")], hasNextPage: false)
+        let repos = [Repo.mock(name: "ZaydlaRepo")]
+        var requestTimes: [Int] = []
+        var requestedUsernames: [String] = []
+        let scheduler = self.scheduler!
+
+        service.fetchReposHandler = { username, _, _, _ in
+            requestTimes.append(scheduler.clock)
+            requestedUsernames.append(username)
+            return scheduler.createColdObservable([
+                .next(50, RepoPage(repos: repos, hasNextPage: false)),
+                .completed(50)
+            ]).asSingle()
+        }
 
         let viewModel = SearchViewModel(
             service: service,
             scheduler: scheduler,
-            debounceInterval: .seconds(1)
+            debounceInterval: .milliseconds(400)
         )
 
         let username = scheduler.createHotObservable([
-            .next(10, "a"),
-            .next(11, "ap"),
-            .next(12, "app"),
-            .next(13, "apple"),
-            .next(30, "apple")
+            .next(10, "Z"),
+            .next(100, "Za"),
+            .next(200, "Zay"),
+            .next(300, "Zaydla")
         ]).asObservable()
 
         let output = viewModel.transform(input: makeInput(username: username))
+        let phaseObserver = scheduler.createObserver(SearchViewModel.SearchPhase.self)
 
         output.state
             .asObservable()
-            .map(\.repos)
-            .subscribe()
+            .map(\.phase)
+            .distinctUntilChanged()
+            .subscribe(phaseObserver)
             .disposed(by: disposeBag)
 
-        scheduler.start()
+        scheduler.advanceTo(699)
 
-        XCTAssertEqual(service.fetchReposCallCount, 4)
-        XCTAssertEqual(service.lastUsername, "apple")
+        XCTAssertEqual(service.fetchReposCallCount, 0)
+        XCTAssertEqual(phaseObserver.events.map(\.time), [0])
+        XCTAssertEqual(phases(from: phaseObserver), [.prompt(L10n.Search.promptMessage)])
+
+        scheduler.advanceTo(700)
+
+        XCTAssertEqual(service.fetchReposCallCount, 1)
+        XCTAssertEqual(requestTimes, [700])
+        XCTAssertEqual(requestedUsernames, ["Zaydla"])
+        XCTAssertEqual(phaseObserver.events.map(\.time), [0, 700])
+        XCTAssertEqual(phases(from: phaseObserver), [.prompt(L10n.Search.promptMessage), .loading])
+
+        scheduler.advanceTo(750)
+
+        XCTAssertEqual(service.fetchReposCallCount, 1)
         XCTAssertEqual(service.lastPage, 1)
+        XCTAssertEqual(phaseObserver.events.map(\.time), [0, 700, 750])
+        XCTAssertEqual(phases(from: phaseObserver), [.prompt(L10n.Search.promptMessage), .loading, .results])
     }
 
     func test_debounce_doesNotFetchForWhitespaceOnly() {
@@ -76,10 +104,14 @@ final class SearchViewModelTests: XCTestCase {
             .next(20, "      ")
         ]).asObservable()
 
-        _ = viewModel.transform(input: makeInput(username: username))
+        let output = viewModel.transform(input: makeInput(username: username))
+
+        output.state
+            .asObservable()
+            .subscribe()
+            .disposed(by: disposeBag)
 
         scheduler.start()
-
         XCTAssertEqual(service.fetchReposCallCount, 0)
         XCTAssertNil(service.lastUsername)
     }
@@ -271,5 +303,11 @@ final class SearchViewModelTests: XCTestCase {
             sortChanged: sortChanged,
             loadNextPage: loadNextPage
         )
+    }
+
+    private func phases(
+        from observer: TestableObserver<SearchViewModel.SearchPhase>
+    ) -> [SearchViewModel.SearchPhase] {
+        observer.events.compactMap { $0.value.element }
     }
 }
