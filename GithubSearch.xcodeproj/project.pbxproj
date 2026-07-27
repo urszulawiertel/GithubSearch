@@ -14,13 +14,13 @@
 		749F0C552FF286B90056A1C9 /* AvatarImagePresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 749F0C542FF286B90056A1C9 /* AvatarImagePresenter.swift */; };
 		74C0DE6B2FF2A10000A1C901 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74C0DE6A2FF2A10000A1C901 /* L10n.swift */; };
 		74C0DE6E2FF2A12000A1C901 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 74C0DE6C2FF2A12000A1C901 /* Localizable.strings */; };
-		74E1000231A1000000A1C901 /* SearchPlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74E1000131A1000000A1C901 /* SearchPlaceholderView.swift */; };
 		74D1A0013001000000A1C901 /* RepoDetailsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74D1A0003001000000A1C901 /* RepoDetailsView.swift */; };
 		74D1A0033002000000A1C901 /* RepoDetailsSectionStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74D1A0023002000000A1C901 /* RepoDetailsSectionStyle.swift */; };
 		74D1A0053002000000A1C901 /* RepoTopicsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74D1A0043002000000A1C901 /* RepoTopicsView.swift */; };
 		74D1A0073002000000A1C901 /* RepoLanguagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74D1A0063002000000A1C901 /* RepoLanguagesView.swift */; };
 		74D1A0093002000000A1C901 /* RepoReadmePreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74D1A0083002000000A1C901 /* RepoReadmePreviewView.swift */; };
 		74D1A00B3002000000A1C901 /* RepoReleaseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74D1A00A3002000000A1C901 /* RepoReleaseView.swift */; };
+		74E1000231A1000000A1C901 /* SearchPlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74E1000131A1000000A1C901 /* SearchPlaceholderView.swift */; };
 		750C8FCB2FDC2A9000A1C901 /* RepositoryCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 750C8FCA2FDC2A9000A1C901 /* RepositoryCell.swift */; };
 		750F6B152FDC3D6900E9A112 /* RepoDetailsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 750F6B142FDC3D6900E9A112 /* RepoDetailsViewModelTests.swift */; };
 		7510F5742FF264E600C11C44 /* RepositoryCellTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7510F5732FF264E600C11C44 /* RepositoryCellTests.swift */; };
@@ -83,13 +83,13 @@
 		749F0C542FF286B90056A1C9 /* AvatarImagePresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarImagePresenter.swift; sourceTree = "<group>"; };
 		74C0DE6A2FF2A10000A1C901 /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
 		74C0DE6D2FF2A12000A1C901 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
-		74E1000131A1000000A1C901 /* SearchPlaceholderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchPlaceholderView.swift; sourceTree = "<group>"; };
 		74D1A0003001000000A1C901 /* RepoDetailsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepoDetailsView.swift; sourceTree = "<group>"; };
 		74D1A0023002000000A1C901 /* RepoDetailsSectionStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepoDetailsSectionStyle.swift; sourceTree = "<group>"; };
 		74D1A0043002000000A1C901 /* RepoTopicsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepoTopicsView.swift; sourceTree = "<group>"; };
 		74D1A0063002000000A1C901 /* RepoLanguagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepoLanguagesView.swift; sourceTree = "<group>"; };
 		74D1A0083002000000A1C901 /* RepoReadmePreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepoReadmePreviewView.swift; sourceTree = "<group>"; };
 		74D1A00A3002000000A1C901 /* RepoReleaseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepoReleaseView.swift; sourceTree = "<group>"; };
+		74E1000131A1000000A1C901 /* SearchPlaceholderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchPlaceholderView.swift; sourceTree = "<group>"; };
 		75018D662F4E045000A88E6D /* RxSwift.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = RxSwift.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		750C8FCA2FDC2A9000A1C901 /* RepositoryCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryCell.swift; sourceTree = "<group>"; };
 		750F6B142FDC3D6900E9A112 /* RepoDetailsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepoDetailsViewModelTests.swift; sourceTree = "<group>"; };
@@ -817,7 +817,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = NKX4Y6CAJV;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = GithubSearch/Info.plist;
@@ -831,7 +831,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.urszulawiertel.GithubSearch;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -847,7 +847,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 5;
 				DEVELOPMENT_TEAM = NKX4Y6CAJV;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = GithubSearch/Info.plist;
@@ -861,7 +861,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = com.urszulawiertel.GithubSearch;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
