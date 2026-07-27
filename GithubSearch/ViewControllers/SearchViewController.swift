@@ -17,6 +17,8 @@ final class SearchViewController: UIViewController {
         static let searchTextFieldAccessibilityIdentifier = "search.usernameField"
         static let resultsTableAccessibilityIdentifier = "search.resultsTable"
         static let emptyStateAccessibilityIdentifier = "search.emptyStateLabel"
+        static let userNotFoundAccessibilityIdentifier = "search.userNotFoundPlaceholder"
+        static let placeholderHorizontalInset: CGFloat = 32
     }
 
     let onRepoSelected = PublishRelay<Repo>()
@@ -32,6 +34,7 @@ final class SearchViewController: UIViewController {
     fileprivate let resultsTableView = UITableView(frame: .zero, style: .plain)
     fileprivate let activityIndicatorView = UIActivityIndicatorView(style: .medium)
     fileprivate let emptyStateLabel = UILabel()
+    fileprivate let userNotFoundPlaceholderView = SearchPlaceholderView()
 
     private let loadingVisibleAreaLayoutGuide = UILayoutGuide()
     private let searchController = UISearchController(searchResultsController: nil)
@@ -115,6 +118,10 @@ final class SearchViewController: UIViewController {
         view.addLayoutGuide(loadingVisibleAreaLayoutGuide)
         view.addSubview(resultsTableView)
 
+        userNotFoundPlaceholderView.isHidden = true
+        userNotFoundPlaceholderView.accessibilityIdentifier = Constants.userNotFoundAccessibilityIdentifier
+        view.addSubview(userNotFoundPlaceholderView)
+
         activityIndicatorView.hidesWhenStopped = true
         activityIndicatorView.stopAnimating()
         view.addSubview(activityIndicatorView)
@@ -135,6 +142,14 @@ final class SearchViewController: UIViewController {
         activityIndicatorView.snp.makeConstraints {
             $0.centerX.equalToSuperview()
             $0.centerY.equalTo(loadingVisibleAreaLayoutGuide.snp.centerY)
+        }
+
+        userNotFoundPlaceholderView.snp.makeConstraints {
+            $0.center.equalTo(loadingVisibleAreaLayoutGuide.snp.center)
+            $0.leading.greaterThanOrEqualTo(view.safeAreaLayoutGuide)
+                .offset(Constants.placeholderHorizontalInset)
+            $0.trailing.lessThanOrEqualTo(view.safeAreaLayoutGuide)
+                .inset(Constants.placeholderHorizontalInset)
         }
     }
 
@@ -251,19 +266,29 @@ private extension Reactive where Base: SearchViewController {
             switch state.phase {
             case .loading:
                 viewController.emptyStateLabel.isHidden = true
+                viewController.userNotFoundPlaceholderView.isHidden = true
                 viewController.resultsTableView.isHidden = true
                 viewController.activityIndicatorView.startAnimating()
 
             case let .prompt(message), let .empty(message):
                 viewController.activityIndicatorView.stopAnimating()
+                viewController.userNotFoundPlaceholderView.isHidden = true
                 viewController.emptyStateLabel.text = message
                 viewController.emptyStateLabel.isHidden = false
                 viewController.resultsTableView.isHidden = false
 
-            case .results, .failure:
+            case .userNotFound:
                 viewController.activityIndicatorView.stopAnimating()
                 viewController.emptyStateLabel.text = nil
                 viewController.emptyStateLabel.isHidden = true
+                viewController.resultsTableView.isHidden = true
+                viewController.userNotFoundPlaceholderView.isHidden = false
+
+            case .idle, .results, .failure:
+                viewController.activityIndicatorView.stopAnimating()
+                viewController.emptyStateLabel.text = nil
+                viewController.emptyStateLabel.isHidden = true
+                viewController.userNotFoundPlaceholderView.isHidden = true
                 viewController.resultsTableView.isHidden = false
             }
         }

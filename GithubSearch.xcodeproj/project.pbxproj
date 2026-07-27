@@ -14,6 +14,7 @@
 		749F0C552FF286B90056A1C9 /* AvatarImagePresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 749F0C542FF286B90056A1C9 /* AvatarImagePresenter.swift */; };
 		74C0DE6B2FF2A10000A1C901 /* L10n.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74C0DE6A2FF2A10000A1C901 /* L10n.swift */; };
 		74C0DE6E2FF2A12000A1C901 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 74C0DE6C2FF2A12000A1C901 /* Localizable.strings */; };
+		74E1000231A1000000A1C901 /* SearchPlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74E1000131A1000000A1C901 /* SearchPlaceholderView.swift */; };
 		74D1A0013001000000A1C901 /* RepoDetailsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74D1A0003001000000A1C901 /* RepoDetailsView.swift */; };
 		74D1A0033002000000A1C901 /* RepoDetailsSectionStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74D1A0023002000000A1C901 /* RepoDetailsSectionStyle.swift */; };
 		74D1A0053002000000A1C901 /* RepoTopicsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74D1A0043002000000A1C901 /* RepoTopicsView.swift */; };
@@ -82,6 +83,7 @@
 		749F0C542FF286B90056A1C9 /* AvatarImagePresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarImagePresenter.swift; sourceTree = "<group>"; };
 		74C0DE6A2FF2A10000A1C901 /* L10n.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = L10n.swift; sourceTree = "<group>"; };
 		74C0DE6D2FF2A12000A1C901 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		74E1000131A1000000A1C901 /* SearchPlaceholderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchPlaceholderView.swift; sourceTree = "<group>"; };
 		74D1A0003001000000A1C901 /* RepoDetailsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepoDetailsView.swift; sourceTree = "<group>"; };
 		74D1A0023002000000A1C901 /* RepoDetailsSectionStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepoDetailsSectionStyle.swift; sourceTree = "<group>"; };
 		74D1A0043002000000A1C901 /* RepoTopicsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepoTopicsView.swift; sourceTree = "<group>"; };
@@ -220,6 +222,7 @@
 		757F7D592F44FA0C00F16F6E /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				74E1000131A1000000A1C901 /* SearchPlaceholderView.swift */,
 				750C8FCA2FDC2A9000A1C901 /* RepositoryCell.swift */,
 				74D1A0003001000000A1C901 /* RepoDetailsView.swift */,
 				74D1A0023002000000A1C901 /* RepoDetailsSectionStyle.swift */,
@@ -602,6 +605,7 @@
 				7499C1012FF23A1100A1C901 /* AppLaunchEnvironment.swift in Sources */,
 				749F0C552FF286B90056A1C9 /* AvatarImagePresenter.swift in Sources */,
 				74C0DE6B2FF2A10000A1C901 /* L10n.swift in Sources */,
+				74E1000231A1000000A1C901 /* SearchPlaceholderView.swift in Sources */,
 				740D00052FF9000000D00B00 /* DebugGitHubService.swift in Sources */,
 				750C8FCB2FDC2A9000A1C901 /* RepositoryCell.swift in Sources */,
 				74D1A0013001000000A1C901 /* RepoDetailsView.swift in Sources */,

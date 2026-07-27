@@ -29,16 +29,20 @@ final class SearchViewModel {
 
     enum SearchPhase: Equatable {
         case prompt(String)
+        case idle
         case loading
         case results
         case empty(String)
+        case userNotFound
         case failure
     }
 
     private enum Action {
         case parametersChanged(SearchParameters)
+        case initialRequested(parameters: SearchParameters)
         case initialLoaded(parameters: SearchParameters, page: RepoPage)
         case initialFailed(parameters: SearchParameters, message: String)
+        case userNotFound(parameters: SearchParameters)
         case nextPageRequested(parameters: SearchParameters)
         case nextPageLoaded(parameters: SearchParameters, pageNumber: Int, page: RepoPage)
         case nextPageFailed(parameters: SearchParameters, message: String)
@@ -80,31 +84,40 @@ final class SearchViewModel {
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .distinctUntilChanged()
             .share(replay: 1, scope: .whileConnected)
-        let username = Observable.merge(
-            normalizedUsername.filter(\.isEmpty),
-            normalizedUsername
-                .debounce(debounceInterval, scheduler: scheduler)
-                .filter { !$0.isEmpty }
-        )
-            .distinctUntilChanged()
-            .share(replay: 1, scope: .whileConnected)
         let selectedSort = input.sortChanged
             .startWith(Self.initialState.selectedSort)
             .distinctUntilChanged()
             .share(replay: 1, scope: .whileConnected)
         let searchParameters = Observable
-            .combineLatest(username, selectedSort) { query, sort in
+            .combineLatest(normalizedUsername, selectedSort) { query, sort in
                 SearchParameters(query: query, sort: sort)
             }
             .distinctUntilChanged()
             .share(replay: 1, scope: .whileConnected)
 
-        let initialActions = searchParameters
-            .flatMapLatest { [service] parameters -> Observable<Action> in
-                guard !parameters.query.isEmpty else {
-                    return .just(.parametersChanged(parameters))
-                }
+        let queryRequestParameters = normalizedUsername
+            .debounce(debounceInterval, scheduler: scheduler)
+            .filter { !$0.isEmpty }
+            .withLatestFrom(selectedSort) { query, sort in
+                SearchParameters(query: query, sort: sort)
+            }
+        let sortRequestParameters = input.sortChanged
+            .withLatestFrom(normalizedUsername) { sort, query in
+                SearchParameters(query: query, sort: sort)
+            }
+            .filter { !$0.query.isEmpty }
+        let requestParameters = Observable
+            .merge(queryRequestParameters, sortRequestParameters)
+            .withLatestFrom(searchParameters) { requested, current in
+                requested == current ? requested : nil
+            }
+            .compactMap { $0 }
+            .distinctUntilChanged()
 
+        let parameterActions = searchParameters
+            .map(Action.parametersChanged)
+        let initialActions = requestParameters
+            .flatMapLatest { [service] parameters -> Observable<Action> in
                 let request = Observable.deferred {
                     service.fetchRepos(
                         username: parameters.query,
@@ -115,11 +128,12 @@ final class SearchViewModel {
                         .asObservable()
                         .map { Action.initialLoaded(parameters: parameters, page: $0) }
                         .catch { error in
-                            .just(.initialFailed(parameters: parameters, message: Self.mapError(error)))
+                            .just(Self.initialFailureAction(error: error, parameters: parameters))
                         }
                 }
+                    .take(until: searchParameters.filter { $0 != parameters })
 
-                return Observable.concat(.just(.parametersChanged(parameters)), request)
+                return Observable.concat(.just(.initialRequested(parameters: parameters)), request)
             }
 
         let nextPageActions = input.loadNextPage
@@ -141,13 +155,14 @@ final class SearchViewModel {
                     .asObservable()
                     .map { Action.nextPageLoaded(parameters: parameters, pageNumber: nextPage, page: $0) }
                     .catch { error in
-                        .just(.nextPageFailed(parameters: parameters, message: Self.mapError(error)))
+                        .just(Self.nextPageFailureAction(error: error, parameters: parameters))
                     }
+                    .take(until: searchParameters.filter { $0 != parameters })
 
                 return Observable.concat(loading, request)
             }
 
-        let actions = Observable.merge(initialActions, nextPageActions)
+        let actions = Observable.merge(parameterActions, initialActions, nextPageActions)
             .share(replay: 1, scope: .whileConnected)
 
         let state = actions
@@ -190,10 +205,14 @@ final class SearchViewModel {
         switch action {
         case let .parametersChanged(parameters):
             return reduceParametersChanged(state: state, parameters: parameters)
+        case let .initialRequested(parameters):
+            return reduceInitialRequested(state: state, parameters: parameters)
         case let .initialLoaded(parameters, page):
             return reduceInitialLoaded(state: state, parameters: parameters, page: page)
         case let .initialFailed(parameters, _):
             return reduceInitialFailed(state: state, parameters: parameters)
+        case let .userNotFound(parameters):
+            return reduceUserNotFound(state: state, parameters: parameters)
         case let .nextPageRequested(parameters):
             return reduceNextPageRequested(state: state, parameters: parameters)
         case let .nextPageLoaded(parameters, pageNumber, page):
@@ -214,7 +233,18 @@ final class SearchViewModel {
         state.isLoadingNextPage = false
         state.phase = parameters.query.isEmpty
             ? .prompt(Constants.promptMessage)
-            : .loading
+            : .idle
+
+        return state
+    }
+
+    private static func reduceInitialRequested(state: SearchState, parameters: SearchParameters) -> SearchState {
+        var state = state
+
+        guard state.matches(parameters) else {
+            return state
+        }
+        state.phase = .loading
 
         return state
     }
@@ -232,6 +262,21 @@ final class SearchViewModel {
         state.phase = page.repos.isEmpty
             ? .empty(Constants.emptyMessage)
             : .results
+
+        return state
+    }
+
+    private static func reduceUserNotFound(state: SearchState, parameters: SearchParameters) -> SearchState {
+        var state = state
+
+        guard state.matches(parameters) else {
+            return state
+        }
+        state.repos = []
+        state.currentPage = 0
+        state.hasMorePages = false
+        state.isLoadingNextPage = false
+        state.phase = .userNotFound
 
         return state
     }
@@ -300,6 +345,20 @@ final class SearchViewModel {
             return serviceError.userMessage
         }
         return L10n.Common.genericErrorMessage
+    }
+
+    private static func initialFailureAction(error: Error, parameters: SearchParameters) -> Action {
+        if error as? GitHubServiceError == .userNotFound {
+            return .userNotFound(parameters: parameters)
+        }
+        return .initialFailed(parameters: parameters, message: mapError(error))
+    }
+
+    private static func nextPageFailureAction(error: Error, parameters: SearchParameters) -> Action {
+        if error as? GitHubServiceError == .userNotFound {
+            return .userNotFound(parameters: parameters)
+        }
+        return .nextPageFailed(parameters: parameters, message: mapError(error))
     }
 
 }

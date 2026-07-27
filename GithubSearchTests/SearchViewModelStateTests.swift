@@ -27,43 +27,12 @@ final class SearchViewModelStateTests: XCTestCase {
         super.tearDown()
     }
 
-    func test_repos_clearWhenDebouncedUsernameIsAccepted() {
+    func test_userNotFoundError_producesUserNotFoundState() {
         let service = GitHubServiceMock()
-        let repos = [Repo.mock(name: "Repo1"), Repo.mock(name: "Repo2")]
-        service.stubbedPage = RepoPage(repos: repos, hasNextPage: false)
-
-        let viewModel = makeViewModel(service: service)
-        let output = viewModel.transform(input: makeInput(usernameEvents: [
-            .next(10, "apple"),
-            .next(500, "microsoft")
-        ]))
-
-        let observer = scheduler.createObserver([Repo].self)
-
-        output.state
-            .asObservable()
-            .map(\.repos)
-            .distinctUntilChanged()
-            .subscribe(observer)
-            .disposed(by: disposeBag)
-
-        scheduler.start()
-
-        XCTAssertEqual(observer.events.compactMap { $0.value.element }, [[], repos, [], repos])
-        XCTAssertEqual(observer.events.map(\.time), [0, 410, 900, 900])
-    }
-
-    func test_phase_startsLoadingAtDebouncedBoundary_forNonEmptyQueryChanges() {
-        let service = GitHubServiceMock()
-        service.stubbedPage = RepoPage(repos: [Repo.mock(name: "Repo1")], hasNextPage: false)
-
-        let viewModel = makeViewModel(service: service)
-        let output = viewModel.transform(input: makeInput(usernameEvents: [
-            .next(10, "apple"),
-            .next(500, "microsoft"),
-            .next(1_100, "")
-        ]))
-
+        service.stubbedError = GitHubServiceError.userNotFound
+        let output = makeViewModel(service: service).transform(
+            input: makeInput(usernameEvents: [.next(10, "ghost-user")])
+        )
         let observer = scheduler.createObserver(SearchViewModel.SearchPhase.self)
 
         output.state
@@ -77,75 +46,107 @@ final class SearchViewModelStateTests: XCTestCase {
 
         XCTAssertEqual(
             observer.events.compactMap { $0.value.element },
-            [.prompt(L10n.Search.promptMessage), .loading, .results, .loading, .results, .prompt(L10n.Search.promptMessage)]
+            [.prompt(L10n.Search.promptMessage), .idle, .loading, .userNotFound]
         )
-        XCTAssertEqual(observer.events.map(\.time), [0, 410, 410, 900, 900, 1_100])
     }
 
-    func test_phase_emitsFailure_andAlertMessage_whenFetchFails() {
+    func test_userNotFoundError_doesNotProduceGeneralFailureOrAlert() {
         let service = GitHubServiceMock()
         service.stubbedError = GitHubServiceError.userNotFound
-
-        let viewModel = makeViewModel(service: service)
-        let output = viewModel.transform(input: makeInput(usernameEvents: [
-            .next(10, "ghost-user")
-        ]))
-
+        let output = makeViewModel(service: service).transform(
+            input: makeInput(usernameEvents: [.next(10, "ghost-user")])
+        )
         let stateObserver = scheduler.createObserver(SearchViewModel.SearchPhase.self)
-        let errorObserver = scheduler.createObserver(String.self)
+        let alertObserver = scheduler.createObserver(String.self)
 
         output.state
             .asObservable()
             .map(\.phase)
-            .distinctUntilChanged()
             .subscribe(stateObserver)
             .disposed(by: disposeBag)
-
         output.alertMessage
             .asObservable()
-            .subscribe(errorObserver)
+            .subscribe(alertObserver)
             .disposed(by: disposeBag)
 
         scheduler.start()
 
-        XCTAssertEqual(stateObserver.events.compactMap { $0.value.element }, [.prompt(L10n.Search.promptMessage), .loading, .failure])
-        XCTAssertEqual(stateObserver.events.map(\.time), [0, 410, 410])
-        XCTAssertEqual(errorObserver.events.compactMap { $0.value.element }, [L10n.GitHubServiceError.userNotFound])
+        XCTAssertFalse(stateObserver.events.compactMap { $0.value.element }.contains(.failure))
+        XCTAssertTrue(alertObserver.events.compactMap { $0.value.element }.isEmpty)
     }
 
-    func test_repos_clearImmediately_whenUsernameBecomesEmptyString() {
+    func test_userNotFoundError_clearsPreviousResults() {
         let service = GitHubServiceMock()
-        let repos = [Repo.mock(name: "Repo1"), Repo.mock(name: "Repo2")]
-        service.stubbedPage = RepoPage(repos: repos, hasNextPage: false)
-
-        let viewModel = makeViewModel(service: service)
-        let output = viewModel.transform(input: makeInput(usernameEvents: [
+        let repos = [Repo.mock(name: "AppleRepo")]
+        service.fetchReposHandler = { username, _, _, _ in
+            username == "apple"
+                ? .just(RepoPage(repos: repos, hasNextPage: true))
+                : .error(GitHubServiceError.userNotFound)
+        }
+        let output = makeViewModel(service: service).transform(input: makeInput(usernameEvents: [
             .next(10, "apple"),
-            .next(500, "")
+            .next(500, "ghost-user")
         ]))
-
-        let observer = scheduler.createObserver([Repo].self)
+        let observer = scheduler.createObserver(SearchViewModel.SearchState.self)
 
         output.state
             .asObservable()
-            .map(\.repos)
-            .distinctUntilChanged()
             .subscribe(observer)
             .disposed(by: disposeBag)
 
         scheduler.start()
 
-        XCTAssertEqual(observer.events.compactMap { $0.value.element }, [[], repos, []])
+        let finalState = observer.events.compactMap { $0.value.element }.last
+        XCTAssertEqual(finalState?.phase, .userNotFound)
+        XCTAssertEqual(finalState?.repos, [])
+        XCTAssertEqual(finalState?.currentPage, 0)
+        XCTAssertEqual(finalState?.hasMorePages, false)
+        XCTAssertEqual(finalState?.isLoadingNextPage, false)
     }
 
-    func test_clearingUsername_cancelsPendingSearch_andResetsStateImmediately() {
+    func test_queryChange_clearsUserNotFoundAndResultsImmediately_duringDebounce() {
         let service = GitHubServiceMock()
         let repos = [Repo.mock(name: "AppleRepo")]
-        service.stubbedPage = RepoPage(repos: repos, hasNextPage: false)
-
+        service.fetchReposHandler = { username, _, _, _ in
+            username == "apple"
+                ? .just(RepoPage(repos: repos, hasNextPage: false))
+                : .error(GitHubServiceError.userNotFound)
+        }
         let output = makeViewModel(service: service).transform(input: makeInput(usernameEvents: [
             .next(10, "apple"),
-            .next(500, "Zaydla"),
+            .next(500, "ghost-user"),
+            .next(1_000, "octocat")
+        ]))
+        let observer = scheduler.createObserver(SearchViewModel.SearchState.self)
+
+        output.state
+            .asObservable()
+            .subscribe(observer)
+            .disposed(by: disposeBag)
+
+        scheduler.advanceTo(1_000)
+
+        let stateAfterResults = observer.events.first {
+            $0.time == 500 && $0.value.element?.query == "ghost-user"
+        }?.value.element
+        XCTAssertEqual(stateAfterResults?.phase, .idle)
+        XCTAssertEqual(stateAfterResults?.repos, [])
+
+        let stateAfterUserNotFound = observer.events.first {
+            $0.time == 1_000 && $0.value.element?.query == "octocat"
+        }?.value.element
+        XCTAssertEqual(stateAfterUserNotFound?.phase, .idle)
+        XCTAssertEqual(stateAfterUserNotFound?.repos, [])
+        XCTAssertFalse(stateAfterUserNotFound?.isLoadingNextPage ?? true)
+    }
+
+    func test_emptyAndWhitespaceOnlyInput_resetImmediately_withoutRequest() {
+        let service = GitHubServiceMock()
+        let repos = [Repo.mock(name: "AppleRepo")]
+        service.stubbedPage = RepoPage(repos: repos, hasNextPage: true)
+        let output = makeViewModel(service: service).transform(input: makeInput(usernameEvents: [
+            .next(10, "apple"),
+            .next(500, ""),
             .next(600, "   ")
         ]))
         let observer = scheduler.createObserver(SearchViewModel.SearchState.self)
@@ -157,41 +158,88 @@ final class SearchViewModelStateTests: XCTestCase {
 
         scheduler.start()
 
-        let reset = observer.events.first { event in
-            event.time == 600 && event.value.element?.query == ""
+        let resetState = observer.events.first {
+            $0.time == 500 && $0.value.element?.query == ""
         }?.value.element
-
         XCTAssertEqual(service.fetchReposCallCount, 1)
-        XCTAssertEqual(service.lastUsername, "apple")
-        XCTAssertEqual(reset?.repos, [])
-        XCTAssertEqual(reset?.phase, .prompt(L10n.Search.promptMessage))
+        XCTAssertEqual(resetState?.repos, [])
+        XCTAssertEqual(resetState?.phase, .prompt(L10n.Search.promptMessage))
+        XCTAssertEqual(resetState?.currentPage, 0)
+        XCTAssertEqual(resetState?.hasMorePages, false)
+        XCTAssertEqual(resetState?.isLoadingNextPage, false)
     }
 
-    func test_staleUsernameResponse_doesNotReplaceLatestResults() {
+    func test_successfulSearchAfterUserNotFound_displaysResults() {
         let service = GitHubServiceMock()
-        let appleRepos = [Repo.mock(id: 1, name: "AppleRepo")]
-        let zaydlaRepos = [Repo.mock(id: 2, name: "ZaydlaRepo")]
-        let scheduler = self.scheduler!
-
+        let repos = [Repo.mock(name: "OctocatRepo")]
         service.fetchReposHandler = { username, _, _, _ in
-            let response: Recorded<Event<RepoPage>>
+            username == "ghost-user"
+                ? .error(GitHubServiceError.userNotFound)
+                : .just(RepoPage(repos: repos, hasNextPage: false))
+        }
+        let output = makeViewModel(service: service).transform(input: makeInput(usernameEvents: [
+            .next(10, "ghost-user"),
+            .next(500, "octocat")
+        ]))
+        let observer = scheduler.createObserver(SearchViewModel.SearchState.self)
 
-            switch username {
-            case "apple":
-                response = .next(600, RepoPage(repos: appleRepos, hasNextPage: false))
-            default:
-                response = .next(10, RepoPage(repos: zaydlaRepos, hasNextPage: false))
-            }
+        output.state
+            .asObservable()
+            .subscribe(observer)
+            .disposed(by: disposeBag)
 
+        scheduler.start()
+
+        let finalState = observer.events.compactMap { $0.value.element }.last
+        XCTAssertEqual(finalState?.phase, .results)
+        XCTAssertEqual(finalState?.repos, repos)
+    }
+
+    func test_connectivityError_remainsGeneralFailureAndEmitsAlert() {
+        let service = GitHubServiceMock()
+        service.stubbedError = GitHubServiceError.connectivity
+        let output = makeViewModel(service: service).transform(
+            input: makeInput(usernameEvents: [.next(10, "octocat")])
+        )
+        let stateObserver = scheduler.createObserver(SearchViewModel.SearchPhase.self)
+        let alertObserver = scheduler.createObserver(String.self)
+
+        output.state
+            .asObservable()
+            .map(\.phase)
+            .distinctUntilChanged()
+            .subscribe(stateObserver)
+            .disposed(by: disposeBag)
+        output.alertMessage
+            .asObservable()
+            .subscribe(alertObserver)
+            .disposed(by: disposeBag)
+
+        scheduler.start()
+
+        XCTAssertEqual(stateObserver.events.compactMap { $0.value.element }.last, .failure)
+        XCTAssertEqual(
+            alertObserver.events.compactMap { $0.value.element },
+            [L10n.GitHubServiceError.connectivity]
+        )
+    }
+
+    func test_staleResponse_cannotRepopulateCurrentQuery() {
+        let service = GitHubServiceMock()
+        let staleRepos = [Repo.mock(id: 1, name: "StaleRepo")]
+        let currentRepos = [Repo.mock(id: 2, name: "CurrentRepo")]
+        let scheduler = self.scheduler!
+        service.fetchReposHandler = { username, _, _, _ in
+            let delay = username == "apple" ? 600 : 10
+            let repos = username == "apple" ? staleRepos : currentRepos
             return scheduler.createColdObservable([
-                response,
-                .completed(response.time)
+                .next(delay, RepoPage(repos: repos, hasNextPage: false)),
+                .completed(delay)
             ]).asSingle()
         }
-
         let output = makeViewModel(service: service).transform(input: makeInput(usernameEvents: [
             .next(10, "apple"),
-            .next(500, "Zaydla")
+            .next(500, "microsoft")
         ]))
         let observer = scheduler.createObserver([Repo].self)
 
@@ -205,13 +253,8 @@ final class SearchViewModelStateTests: XCTestCase {
         scheduler.start()
 
         XCTAssertEqual(service.fetchReposCallCount, 2)
-        XCTAssertEqual(
-            observer.events,
-            [
-                .next(0, []),
-                .next(910, zaydlaRepos)
-            ]
-        )
+        XCTAssertEqual(observer.events.compactMap { $0.value.element }, [[], currentRepos])
+        XCTAssertFalse(observer.events.compactMap { $0.value.element }.contains(staleRepos))
     }
 
     private func makeViewModel(service: GitHubServiceMock) -> SearchViewModel {
@@ -223,10 +266,8 @@ final class SearchViewModelStateTests: XCTestCase {
     }
 
     private func makeInput(usernameEvents: [Recorded<Event<String>>]) -> SearchViewModel.Input {
-        let username = scheduler.createHotObservable(usernameEvents).asObservable()
-
-        return .init(
-            username: username,
+        .init(
+            username: scheduler.createHotObservable(usernameEvents).asObservable(),
             sortChanged: .empty(),
             loadNextPage: .empty()
         )

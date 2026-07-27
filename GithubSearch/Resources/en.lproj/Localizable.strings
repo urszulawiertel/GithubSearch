@@ -5,7 +5,9 @@
 "search.navigation.title" = "User Repositories";
 "search.username.placeholder" = "Enter a username";
 "search.prompt.message" = "Enter a username";
-"search.empty.message" = "No public repositories found.";
+"search.empty.message" = "No public repositories found";
+"search.user_not_found.title" = "User not found";
+"search.user_not_found.description" = "Try a different GitHub username";
 "search.sort.button.title" = "Sort";
 "search.sort.best_match" = "Best Match";
 "search.sort.stars" = "Stars";

@@ -230,7 +230,10 @@ final class SearchViewModelPaginationTests: XCTestCase {
         XCTAssertEqual(service.requestedPages, [1, 2])
         XCTAssertEqual(reposObserver.events.compactMap { $0.value.element }, [[], firstPageRepos])
         XCTAssertEqual(errorObserver.events.compactMap { $0.value.element }, [L10n.GitHubServiceError.rateLimited])
-        XCTAssertEqual(stateObserver.events.compactMap { $0.value.element }, [.prompt(L10n.Search.promptMessage), .loading, .results])
+        XCTAssertEqual(
+            stateObserver.events.compactMap { $0.value.element },
+            [.prompt(L10n.Search.promptMessage), .idle, .loading, .results]
+        )
     }
 
     func test_sortChange_resetsResultsAndRestartsFromPageOne() {

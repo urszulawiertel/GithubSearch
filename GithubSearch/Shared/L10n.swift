@@ -19,6 +19,8 @@ enum L10n {
         static let usernamePlaceholder = tr("search.username.placeholder")
         static let promptMessage = tr("search.prompt.message")
         static let emptyMessage = tr("search.empty.message")
+        static let userNotFoundTitle = tr("search.user_not_found.title")
+        static let userNotFoundDescription = tr("search.user_not_found.description")
         static let sortButtonTitle = tr("search.sort.button.title")
         static let sortBestMatch = tr("search.sort.best_match")
         static let sortStars = tr("search.sort.stars")

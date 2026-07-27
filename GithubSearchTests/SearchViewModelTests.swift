@@ -70,23 +70,26 @@ final class SearchViewModelTests: XCTestCase {
         scheduler.advanceTo(699)
 
         XCTAssertEqual(service.fetchReposCallCount, 0)
-        XCTAssertEqual(phaseObserver.events.map(\.time), [0])
-        XCTAssertEqual(phases(from: phaseObserver), [.prompt(L10n.Search.promptMessage)])
+        XCTAssertEqual(phaseObserver.events.map(\.time), [0, 10])
+        XCTAssertEqual(phases(from: phaseObserver), [.prompt(L10n.Search.promptMessage), .idle])
 
         scheduler.advanceTo(700)
 
         XCTAssertEqual(service.fetchReposCallCount, 1)
         XCTAssertEqual(requestTimes, [700])
         XCTAssertEqual(requestedUsernames, ["Zaydla"])
-        XCTAssertEqual(phaseObserver.events.map(\.time), [0, 700])
-        XCTAssertEqual(phases(from: phaseObserver), [.prompt(L10n.Search.promptMessage), .loading])
+        XCTAssertEqual(phaseObserver.events.map(\.time), [0, 10, 700])
+        XCTAssertEqual(phases(from: phaseObserver), [.prompt(L10n.Search.promptMessage), .idle, .loading])
 
         scheduler.advanceTo(750)
 
         XCTAssertEqual(service.fetchReposCallCount, 1)
         XCTAssertEqual(service.lastPage, 1)
-        XCTAssertEqual(phaseObserver.events.map(\.time), [0, 700, 750])
-        XCTAssertEqual(phases(from: phaseObserver), [.prompt(L10n.Search.promptMessage), .loading, .results])
+        XCTAssertEqual(phaseObserver.events.map(\.time), [0, 10, 700, 750])
+        XCTAssertEqual(
+            phases(from: phaseObserver),
+            [.prompt(L10n.Search.promptMessage), .idle, .loading, .results]
+        )
     }
 
     func test_debounce_doesNotFetchForWhitespaceOnly() {
@@ -207,13 +210,13 @@ final class SearchViewModelTests: XCTestCase {
 
         XCTAssertEqual(
             observer.events.compactMap { $0.value.element },
-            [.prompt(L10n.Search.promptMessage), .loading, .results, .prompt(L10n.Search.promptMessage)]
+            [.prompt(L10n.Search.promptMessage), .idle, .loading, .results, .prompt(L10n.Search.promptMessage)]
         )
     }
 
-    func test_alertMessage_emitsMappedText_andReposEmitsEmptyArray_onFailure() {
+    func test_alertMessage_emitsMappedText_andReposEmitsEmptyArray_onGeneralFailure() {
         let service = GitHubServiceMock()
-        service.stubbedError = GitHubServiceError.userNotFound
+        service.stubbedError = GitHubServiceError.connectivity
 
         let viewModel = SearchViewModel(
             service: service,
@@ -244,7 +247,7 @@ final class SearchViewModelTests: XCTestCase {
 
         scheduler.start()
 
-        XCTAssertEqual(errorObserver.events.compactMap { $0.value.element }, [L10n.GitHubServiceError.userNotFound])
+        XCTAssertEqual(errorObserver.events.compactMap { $0.value.element }, [L10n.GitHubServiceError.connectivity])
         XCTAssertEqual(reposObserver.events.compactMap { $0.value.element }.last, [])
     }
 
