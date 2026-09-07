@@ -97,9 +97,9 @@ The data flow follows the existing architecture:
 
 1. `RepoDetailsViewModel` builds a `RepositoryInsightsContext` from the selected `Repo` and the latest README/release values already fetched for the details screen.
 2. `RepositoryInsightsServicing` accepts that domain context. The view controller never builds prompts or performs networking.
-3. DEBUG builds use `DebugRepositoryInsightsService` for a deterministic local demonstration.
-4. Release builds send a strict JSON request through `RepositoryInsightsProxyService` when `RepositoryInsightsProxyURL` is configured.
-5. The proxy response is decoded through provider-specific DTOs, validated, mapped to `RepositoryInsights`, and rendered as explicit view-model state.
+3. Debug builds default to `DebugRepositoryInsightsService`; `REPOSITORY_INSIGHTS_MODE=proxy` explicitly selects the deployed backend.
+4. Release builds send a strict JSON request through `RepositoryInsightsProxyService` to `https://githubsearch-insights.moonshoka.workers.dev/api/repository-insights`.
+5. The Cloudflare Worker invokes Workers AI through its `AI` binding, validates and unwraps the model output, and returns the exact client DTO. Swift validates it again and maps it to `RepositoryInsights`.
 
 Repeated taps are ignored while a request is active. Closing the details screen disposes the request, which cancels the underlying URLSession task and prevents a late response from changing screen state.
 
@@ -113,9 +113,13 @@ The backend must independently enforce those rules rather than trusting client-s
 
 #### Mock and proxy setup
 
-The DEBUG scheme needs no configuration and uses deterministic local insights after a short simulated delay. No provider or GitHub request is made during generation.
+By default, the DEBUG scheme needs no configuration and uses deterministic local insights after a short simulated delay. No provider or GitHub request is made during generation.
 
-For a Release build, set `RepositoryInsightsProxyURL` in `Info.plist` to the HTTPS endpoint operated by your backend. Leaving it empty is safe: generation produces the inline retryable unavailable state. The endpoint URL is configuration, not a secret; provider credentials must remain on the backend.
+The production URL is configured in `Info.plist`. To test it in Debug, enable `REPOSITORY_INSIGHTS_MODE=proxy` in the DEBUG scheme’s Run environment. Release always uses the proxy. No API key or Cloudflare token is embedded in the app.
+
+The real backend lives in [`Backend/githubsearch-insights`](Backend/githubsearch-insights/README.md). It uses `@cf/meta/llama-3.1-8b-instruct-fast`, server-owned instructions, strict JSON schema and post-inference validation. It limits bodies to 24 KiB, generation to 700 output tokens and 25 seconds, and requests to five per minute per connecting IP per Cloudflare location. See the backend README for all field/output limits, error codes, deployment/test commands, free-tier limits, and exact manual end-to-end steps.
+
+The public endpoint has no authentication. IP rate limits are approximate and shared by users behind the same IP; distributed abuse can exhaust the free allocation. Prompt-injection defenses do not guarantee factual accuracy. Client instructions are discarded before inference, and no repository content or provider errors are logged. The Worker has no tools or secrets available to the model.
 
 The client expects `POST` with `Content-Type: application/json`:
 
@@ -170,8 +174,8 @@ Screenshot placeholders for a future real-backend demo:
 
 - There is no chat, streaming, history, persistence, authentication, or on-device model.
 - The first version analyzes only metadata and excerpts already available to the details flow; it does not inspect the full codebase or make extra GitHub requests.
-- DEBUG output is intentionally deterministic and demonstrates UX/state behavior, not model quality.
-- A production Release build requires an independently deployed HTTPS proxy.
+- Debug/mock output is intentionally deterministic and demonstrates UX/state behavior, not model quality.
+- The production proxy uses Cloudflare’s free Workers AI allocation; quota exhaustion or model failures produce an inline retryable error. There is no global abuse budget or authenticated client identity.
 
 ### Image loading
 

@@ -88,6 +88,50 @@ final class RepositoryInsightsServiceTests: XCTestCase {
         }
     }
 
+    func test_launchConfigurationSelectsExpectedInsightsService() {
+        let bundle = Bundle(for: RepoDetailsViewModel.self)
+        let proxy = AppLaunchEnvironment.makeRepositoryInsightsService(
+            bundle: bundle, environment: ["REPOSITORY_INSIGHTS_MODE": "proxy"]
+        )
+        XCTAssertTrue(proxy is RepositoryInsightsProxyService)
+        let defaultService = AppLaunchEnvironment.makeRepositoryInsightsService(bundle: bundle, environment: [:])
+        #if DEBUG
+        XCTAssertTrue(defaultService is DebugRepositoryInsightsService)
+        #else
+        XCTAssertTrue(defaultService is RepositoryInsightsProxyService)
+        #endif
+        XCTAssertEqual(
+            bundle.object(forInfoDictionaryKey: "RepositoryInsightsProxyURL") as? String,
+            "https://githubsearch-insights.moonshoka.workers.dev/api/repository-insights"
+        )
+    }
+
+    func test_requestPreservesSchemaLocaleAndReleaseCodingKeys() throws {
+        let builder = RepositoryInsightsRequestBuilder(locale: { Locale(identifier: "pl_PL") })
+        let request = try builder.makeRequest(endpoint: endpoint, context: Self.makeContext())
+        let body = try XCTUnwrap(request.httpBody)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["schemaVersion"] as? Int, 1)
+        XCTAssertEqual(json["locale"] as? String, "pl")
+        let context = try XCTUnwrap(json["context"] as? [String: Any])
+        let release = try XCTUnwrap(context["latestRelease"] as? [String: Any])
+        XCTAssertEqual(release["tagName"] as? String, "v1.0")
+        XCTAssertEqual(release["publishedAt"] as? String, "1970-01-01T00:00:00Z")
+        XCTAssertEqual(release["notesExcerpt"] as? String, "Initial release")
+    }
+
+    func test_controlledBackendErrorsMapToRetryableServerError() {
+        for status in [400, 413, 422, 429, 502, 503, 504] {
+            let client = RepositoryInsightsHTTPClientMock()
+            let data = Data(#"{"error":{"code":"unavailable","message":"Please retry."}}"#.utf8)
+            client.result = .success((.mock(url: endpoint, statusCode: status), data))
+            let service = RepositoryInsightsProxyService(endpoint: endpoint, client: client)
+            XCTAssertThrowsError(try service.generateInsights(for: Self.makeContext()).toBlocking().single()) { error in
+                XCTAssertEqual(error as? RepositoryInsightsServiceError, .server)
+            }
+        }
+    }
+
     private func assertError(for data: Data, equals expectedError: RepositoryInsightsServiceError) {
         let client = RepositoryInsightsHTTPClientMock()
         client.result = .success((.mock(url: endpoint, statusCode: 200), data))

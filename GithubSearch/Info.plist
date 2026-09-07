@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>RepositoryInsightsProxyURL</key>
-	<string></string>
+	<string>https://githubsearch-insights.moonshoka.workers.dev/api/repository-insights</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -23,17 +23,22 @@ enum AppLaunchEnvironment {
         return makeDebuggableService(wrapping: UITestGitHubService(scenario: scenario))
     }
 
-    static func makeRepositoryInsightsService(bundle: Bundle = .main) -> RepositoryInsightsServicing {
+    static func makeRepositoryInsightsService(
+        bundle: Bundle = .main,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> RepositoryInsightsServicing {
         #if DEBUG
-        return DebugRepositoryInsightsService()
-        #else
+        if environment["REPOSITORY_INSIGHTS_MODE"] != "proxy" {
+            return DebugRepositoryInsightsService()
+        }
+        #endif
         guard let endpointValue = bundle.object(forInfoDictionaryKey: Key.repositoryInsightsProxyURL) as? String,
               let endpoint = URL(string: endpointValue.trimmingCharacters(in: .whitespacesAndNewlines)),
-              !endpointValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+              endpoint.scheme?.lowercased() == "https",
+              endpoint.host != nil else {
             return UnavailableRepositoryInsightsService()
         }
         return RepositoryInsightsProxyService(endpoint: endpoint)
-        #endif
     }
 
     private static func makeDefaultGitHubService() -> GitHubServiceType {
