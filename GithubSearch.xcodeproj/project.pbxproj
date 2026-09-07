@@ -7,13 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A110000131A2000000A1C901 /* RepositoryInsights.swift in Sources */ = {isa = PBXBuildFile; fileRef = A120000131A2000000A1C901 /* RepositoryInsights.swift */; };
-		A110000231A2000000A1C901 /* RepositoryInsightsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A120000231A2000000A1C901 /* RepositoryInsightsService.swift */; };
-		A110000331A2000000A1C901 /* DebugRepositoryInsightsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A120000331A2000000A1C901 /* DebugRepositoryInsightsService.swift */; };
-		A110000431A2000000A1C901 /* RepositoryInsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A120000431A2000000A1C901 /* RepositoryInsightsView.swift */; };
-		A110000531A2000000A1C901 /* RepositoryInsightsServiceMock.swift in Sources */ = {isa = PBXBuildFile; fileRef = A120000531A2000000A1C901 /* RepositoryInsightsServiceMock.swift */; };
-		A110000631A2000000A1C901 /* RepositoryInsightsServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A120000631A2000000A1C901 /* RepositoryInsightsServiceTests.swift */; };
-		A110000831A2000000A1C901 /* RepoDetailsInsightsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A120000831A2000000A1C901 /* RepoDetailsInsightsViewModelTests.swift */; };
 		740D00042FF9000000D00B00 /* DebugSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 740D00012FF9000000D00B00 /* DebugSettings.swift */; };
 		740D00052FF9000000D00B00 /* DebugGitHubService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 740D00022FF9000000D00B00 /* DebugGitHubService.swift */; };
 		740D00062FF9000000D00B00 /* DebugViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 740D00032FF9000000D00B00 /* DebugViewController.swift */; };
@@ -60,6 +53,13 @@
 		75D4D8852FF24F6400C0D123 /* ImageLoaderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75D4D8842FF24F6400C0D123 /* ImageLoaderTests.swift */; };
 		75E8A1012FF24F6400C0D123 /* SearchViewModelPaginationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75E8A1002FF24F6400C0D123 /* SearchViewModelPaginationTests.swift */; };
 		9F55BD1B6643498A87911CFB /* Pods_GithubSearchTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E3E685C2B4DB46E4775B34A5 /* Pods_GithubSearchTests.framework */; };
+		A110000131A2000000A1C901 /* RepositoryInsights.swift in Sources */ = {isa = PBXBuildFile; fileRef = A120000131A2000000A1C901 /* RepositoryInsights.swift */; };
+		A110000231A2000000A1C901 /* RepositoryInsightsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A120000231A2000000A1C901 /* RepositoryInsightsService.swift */; };
+		A110000331A2000000A1C901 /* DebugRepositoryInsightsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A120000331A2000000A1C901 /* DebugRepositoryInsightsService.swift */; };
+		A110000431A2000000A1C901 /* RepositoryInsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A120000431A2000000A1C901 /* RepositoryInsightsView.swift */; };
+		A110000531A2000000A1C901 /* RepositoryInsightsServiceMock.swift in Sources */ = {isa = PBXBuildFile; fileRef = A120000531A2000000A1C901 /* RepositoryInsightsServiceMock.swift */; };
+		A110000631A2000000A1C901 /* RepositoryInsightsServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A120000631A2000000A1C901 /* RepositoryInsightsServiceTests.swift */; };
+		A110000831A2000000A1C901 /* RepoDetailsInsightsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A120000831A2000000A1C901 /* RepoDetailsInsightsViewModelTests.swift */; };
 		C69EE3279692501E534CF20F /* Pods_GithubSearch.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 41796EE388346537EC1F301B /* Pods_GithubSearch.framework */; };
 /* End PBXBuildFile section */
 
@@ -81,13 +81,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		A120000131A2000000A1C901 /* RepositoryInsights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryInsights.swift; sourceTree = "<group>"; };
-		A120000231A2000000A1C901 /* RepositoryInsightsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryInsightsService.swift; sourceTree = "<group>"; };
-		A120000331A2000000A1C901 /* DebugRepositoryInsightsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugRepositoryInsightsService.swift; sourceTree = "<group>"; };
-		A120000431A2000000A1C901 /* RepositoryInsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryInsightsView.swift; sourceTree = "<group>"; };
-		A120000531A2000000A1C901 /* RepositoryInsightsServiceMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryInsightsServiceMock.swift; sourceTree = "<group>"; };
-		A120000631A2000000A1C901 /* RepositoryInsightsServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryInsightsServiceTests.swift; sourceTree = "<group>"; };
-		A120000831A2000000A1C901 /* RepoDetailsInsightsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepoDetailsInsightsViewModelTests.swift; sourceTree = "<group>"; };
 		2EC3267020B03BE6F18FF159 /* Pods-GithubSearchTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-GithubSearchTests.release.xcconfig"; path = "Target Support Files/Pods-GithubSearchTests/Pods-GithubSearchTests.release.xcconfig"; sourceTree = "<group>"; };
 		41796EE388346537EC1F301B /* Pods_GithubSearch.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_GithubSearch.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		740D00012FF9000000D00B00 /* DebugSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugSettings.swift; sourceTree = "<group>"; };
@@ -141,6 +134,13 @@
 		75D4D8822FF24D2E00C0D123 /* ImageLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageLoader.swift; sourceTree = "<group>"; };
 		75D4D8842FF24F6400C0D123 /* ImageLoaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageLoaderTests.swift; sourceTree = "<group>"; };
 		75E8A1002FF24F6400C0D123 /* SearchViewModelPaginationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchViewModelPaginationTests.swift; sourceTree = "<group>"; };
+		A120000131A2000000A1C901 /* RepositoryInsights.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryInsights.swift; sourceTree = "<group>"; };
+		A120000231A2000000A1C901 /* RepositoryInsightsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryInsightsService.swift; sourceTree = "<group>"; };
+		A120000331A2000000A1C901 /* DebugRepositoryInsightsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugRepositoryInsightsService.swift; sourceTree = "<group>"; };
+		A120000431A2000000A1C901 /* RepositoryInsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryInsightsView.swift; sourceTree = "<group>"; };
+		A120000531A2000000A1C901 /* RepositoryInsightsServiceMock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryInsightsServiceMock.swift; sourceTree = "<group>"; };
+		A120000631A2000000A1C901 /* RepositoryInsightsServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryInsightsServiceTests.swift; sourceTree = "<group>"; };
+		A120000831A2000000A1C901 /* RepoDetailsInsightsViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepoDetailsInsightsViewModelTests.swift; sourceTree = "<group>"; };
 		A8CD89A6B4FF54649C38A1A5 /* Pods-GithubSearch.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-GithubSearch.release.xcconfig"; path = "Target Support Files/Pods-GithubSearch/Pods-GithubSearch.release.xcconfig"; sourceTree = "<group>"; };
 		C2E552CD0D8AF181DE53B38B /* Pods-GithubSearch.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-GithubSearch.debug.xcconfig"; path = "Target Support Files/Pods-GithubSearch/Pods-GithubSearch.debug.xcconfig"; sourceTree = "<group>"; };
 		CAB84B7BD3C3EC62A30FE384 /* Pods-GithubSearchTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-GithubSearchTests.debug.xcconfig"; path = "Target Support Files/Pods-GithubSearchTests/Pods-GithubSearchTests.debug.xcconfig"; sourceTree = "<group>"; };
@@ -845,7 +845,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = NKX4Y6CAJV;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = GithubSearch/Info.plist;
@@ -859,7 +859,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.urszulawiertel.GithubSearch;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -875,7 +875,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = NKX4Y6CAJV;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = GithubSearch/Info.plist;
@@ -889,7 +889,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.1;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.urszulawiertel.GithubSearch;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
