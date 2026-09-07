@@ -15,15 +15,15 @@
     {
       "target" : {
         "containerPath" : "container:GithubSearch.xcodeproj",
-        "identifier" : "75AA0D542F435DE600B7FEFD",
-        "name" : "GithubSearchUITests"
+        "identifier" : "75AA0D4A2F435DE600B7FEFD",
+        "name" : "GithubSearchTests"
       }
     },
     {
       "target" : {
         "containerPath" : "container:GithubSearch.xcodeproj",
-        "identifier" : "75AA0D4A2F435DE600B7FEFD",
-        "name" : "GithubSearchTests"
+        "identifier" : "75AA0D542F435DE600B7FEFD",
+        "name" : "GithubSearchUITests"
       }
     }
   ],

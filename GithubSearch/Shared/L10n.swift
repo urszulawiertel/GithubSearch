@@ -84,6 +84,42 @@ enum L10n {
         }
     }
 
+    enum RepositoryInsights {
+        static let sectionTitle = tr("repo.insights.section.title")
+        static let explanation = tr("repo.insights.explanation")
+        static let generateButton = tr("repo.insights.button.generate")
+        static let generatingButton = tr("repo.insights.button.generating")
+        static let regenerateButton = tr("repo.insights.button.regenerate")
+        static let retryButton = tr("repo.insights.button.retry")
+        static let buttonHint = tr("repo.insights.button.hint")
+        static let loadingMessage = tr("repo.insights.loading")
+        static let errorMessage = tr("repo.insights.error")
+        static let insufficientDataMessage = tr("repo.insights.insufficient_data")
+        static let overviewTitle = tr("repo.insights.overview.title")
+        static let usefulForTitle = tr("repo.insights.useful_for.title")
+        static let nextStepsTitle = tr("repo.insights.next_steps.title")
+        static let questionsTitle = tr("repo.insights.questions.title")
+        static let unknownLanguage = tr("repo.insights.debug.language.unknown")
+        static let debugUsefulForOne = tr("repo.insights.debug.useful_for.one")
+        static let debugUsefulForTwo = tr("repo.insights.debug.useful_for.two")
+        static let debugRunStep = tr("repo.insights.debug.next_step.run")
+        static let debugDocumentationStep = tr("repo.insights.debug.next_step.documentation")
+        static let debugQuestionOne = tr("repo.insights.debug.question.one")
+        static let debugQuestionTwo = tr("repo.insights.debug.question.two")
+
+        static func debugOverview(_ fullName: String, _ language: String) -> String {
+            tr("repo.insights.debug.overview", fullName, language)
+        }
+
+        static func debugCodeStep(_ language: String) -> String {
+            tr("repo.insights.debug.next_step.code", language)
+        }
+
+        static func debugReleaseStep(_ tag: String) -> String {
+            tr("repo.insights.debug.next_step.release", tag)
+        }
+    }
+
     enum SearchResults {
         static func starsCount(_ count: Int) -> String {
             tr("search.results.metadata.stars.count", count)

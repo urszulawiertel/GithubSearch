@@ -31,6 +31,8 @@ final class RepoDetailsViewModel {
         let openOnGitHubTapped: Signal<Void>
         let loadDetails: Signal<Bool>
         let topicSelected: Signal<String>
+        let generateInsightsTapped: Signal<Void>
+        let viewClosed: Signal<Void>
     }
 
     struct State: Equatable {
@@ -60,6 +62,7 @@ final class RepoDetailsViewModel {
         var languagesSection: LanguagesSectionState
         var readmeSection: ReadmeSectionState
         var releaseSection: ReleaseSectionState
+        var insightsSection: RepositoryInsightsState
         let openButtonTitle: String
     }
 
@@ -102,15 +105,20 @@ final class RepoDetailsViewModel {
 
     private let repo: Repo
     private let service: GitHubServiceType
+    private let insightsService: RepositoryInsightsServicing
     private let currentDate: () -> Date
+    private let latestReadme = BehaviorRelay<RepositoryReadme?>(value: nil)
+    private let latestRelease = BehaviorRelay<RepositoryRelease?>(value: nil)
 
     init(
         repo: Repo,
         service: GitHubServiceType = GitHubService(),
+        insightsService: RepositoryInsightsServicing = UnavailableRepositoryInsightsService(),
         currentDate: @escaping () -> Date = Date.init
     ) {
         self.repo = repo
         self.service = service
+        self.insightsService = insightsService
         self.currentDate = currentDate
     }
 
@@ -141,11 +149,19 @@ final class RepoDetailsViewModel {
             }
             .asDriver(onErrorJustReturn: .failure())
 
-        let state = Driver.combineLatest(languagesSection, readmeSection, releaseSection) { languages, readme, release in
+        let insightsSection = makeInsightsSection(input: input)
+
+        let state = Driver.combineLatest(
+            languagesSection,
+            readmeSection,
+            releaseSection,
+            insightsSection
+        ) { languages, readme, release, insights in
             var state = baseState
             state.languagesSection = languages
             state.readmeSection = readme
             state.releaseSection = release
+            state.insightsSection = insights
             return state
         }
         .startWith(baseState)
@@ -201,6 +217,7 @@ final class RepoDetailsViewModel {
             languagesSection: .loading(),
             readmeSection: .loading(),
             releaseSection: .loading(),
+            insightsSection: .idle,
             openButtonTitle: Constants.openButtonTitle
         )
     }
@@ -230,6 +247,9 @@ final class RepoDetailsViewModel {
         }
 
         return service.fetchReadme(owner: repoIdentifier.owner, repo: repoIdentifier.name, forceRefresh: forceRefresh)
+            .do(onSuccess: { [weak self] readme in
+                self?.latestReadme.accept(readme)
+            })
             .map { readme in
                 guard let preview = RepoDetailsReadmeFormatter.preview(from: readme?.text) else {
                     return .empty()
@@ -248,6 +268,9 @@ final class RepoDetailsViewModel {
         }
 
         return service.fetchLatestRelease(owner: repoIdentifier.owner, repo: repoIdentifier.name)
+            .do(onSuccess: { [weak self] release in
+                self?.latestRelease.accept(release)
+            })
             .map { release in
                 guard let release else {
                     return .empty()
@@ -262,6 +285,54 @@ final class RepoDetailsViewModel {
             .asObservable()
             .catchAndReturn(.failure())
             .startWith(.loading())
+    }
+
+    private func generateInsights() -> Observable<RepositoryInsightsState> {
+        let context = makeInsightsContext()
+        guard context.hasSufficientData else {
+            return .just(.insufficientData)
+        }
+
+        return insightsService.generateInsights(for: context)
+            .map(RepositoryInsightsState.loaded)
+            .asObservable()
+            .catchAndReturn(.failed)
+            .startWith(.loading)
+    }
+
+    private func makeInsightsSection(input: Input) -> Driver<RepositoryInsightsState> {
+        input.generateInsightsTapped
+            .asObservable()
+            .flatMapFirst { [weak self] _ -> Observable<RepositoryInsightsState> in
+                guard let self else { return .empty() }
+                return self.generateInsights()
+            }
+            .take(until: input.viewClosed.asObservable())
+            .startWith(.idle)
+            .asDriver(onErrorJustReturn: .failed)
+    }
+
+    private func makeInsightsContext() -> RepositoryInsightsContext {
+        let release = latestRelease.value.map { release in
+            RepositoryInsightsContext.Release(
+                name: release.name,
+                tagName: release.tagName,
+                publishedAt: release.publishedAt,
+                notesExcerpt: RepoDetailsReadmeFormatter.preview(from: release.body)
+            )
+        }
+
+        return RepositoryInsightsContext(
+            repositoryName: Self.normalized(repo.name) ?? Constants.titleFallback,
+            fullName: Self.normalized(repo.fullName) ?? Constants.subtitleFallback,
+            description: Self.normalized(repo.description),
+            primaryLanguage: Self.normalized(repo.language),
+            topics: repo.topics.compactMap(Self.normalized),
+            starCount: max(repo.stargazersCount, 0),
+            licenseName: Self.normalized(repo.license?.name),
+            readmeExcerpt: RepoDetailsReadmeFormatter.preview(from: latestReadme.value?.text),
+            latestRelease: release
+        )
     }
 
     private static func normalized(_ text: String?) -> String? {

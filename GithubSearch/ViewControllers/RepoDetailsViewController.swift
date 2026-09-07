@@ -20,6 +20,7 @@ final class RepoDetailsViewController: UIViewController {
     private var currentAvatarURL: URL?
     private let loadDetailsRelay = PublishRelay<Bool>()
     private let topicSelectedRelay = PublishRelay<String>()
+    private let viewClosedRelay = PublishRelay<Void>()
     var onFinish: (() -> Void)?
 
     // MARK: - Init
@@ -57,6 +58,14 @@ final class RepoDetailsViewController: UIViewController {
         }
     }
 
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+
+        if isMovingFromParent || isBeingDismissed {
+            viewClosedRelay.accept(())
+        }
+    }
+
     deinit {
         avatarTask?.cancel()
     }
@@ -67,7 +76,9 @@ final class RepoDetailsViewController: UIViewController {
         let input = RepoDetailsViewModel.Input(
             openOnGitHubTapped: detailsView.openOnGitHubButton.rx.tap.asSignal(),
             loadDetails: loadDetailsRelay.asSignal(),
-            topicSelected: topicSelectedRelay.asSignal()
+            topicSelected: topicSelectedRelay.asSignal(),
+            generateInsightsTapped: detailsView.repositoryInsightsView.generateButton.rx.tap.asSignal(),
+            viewClosed: viewClosedRelay.asSignal()
         )
 
         let output = viewModel.transform(input: input)

@@ -29,6 +29,7 @@ RxSwift/RxCocoa is used to model user input and async events as observable strea
 - Pagination with infinite scroll
 - Repository details with activity statistics, metadata, and topics
 - Language breakdown, README preview, and latest release insights
+- On-demand AI Repository Insights with an overview, intended audience, concrete next steps, and questions to explore
 - Pull-to-refresh for repository insights
 - Open repositories in an in-app browser
 - Remote image loading with in-memory caching
@@ -88,6 +89,90 @@ The details screen renders the repository data already returned by the search re
 
 Language and README responses are cached in memory for the current service instance. Pull-to-refresh bypasses those caches and reloads the details sections.
 
+### AI Repository Insights
+
+An unfamiliar repository can be difficult to evaluate from metadata or a README alone. The AI Repository Insights card turns the repository information already loaded by the app into four concise sections: Overview, Useful For, Suggested Next Steps, and Questions to Explore. Generation is always user initiated. The card has inline idle, loading, loaded, insufficient-data, and retryable failure states, so the rest of the details screen stays usable.
+
+The data flow follows the existing architecture:
+
+1. `RepoDetailsViewModel` builds a `RepositoryInsightsContext` from the selected `Repo` and the latest README/release values already fetched for the details screen.
+2. `RepositoryInsightsServicing` accepts that domain context. The view controller never builds prompts or performs networking.
+3. DEBUG builds use `DebugRepositoryInsightsService` for a deterministic local demonstration.
+4. Release builds send a strict JSON request through `RepositoryInsightsProxyService` when `RepositoryInsightsProxyURL` is configured.
+5. The proxy response is decoded through provider-specific DTOs, validated, mapped to `RepositoryInsights`, and rendered as explicit view-model state.
+
+Repeated taps are ignored while a request is active. Closing the details screen disposes the request, which cancels the underlying URLSession task and prevents a late response from changing screen state.
+
+#### Security decision
+
+The app never stores an OpenAI, Anthropic, or other provider key. An API key in source code, an `.xcconfig`, an environment variable copied into the app, or obfuscated client code can all be recovered from a distributed iOS application. Provider authentication and provider-specific prompt execution therefore belong on a server-side proxy.
+
+Repository descriptions, README excerpts, topics, and release notes are treated as untrusted data. The proxy request marks them as untrusted and carries explicit instructions to ignore commands embedded in repository content, use only supplied facts, distinguish facts from suggestions, and return only the expected JSON schema.
+
+The backend must independently enforce those rules rather than trusting client-supplied instructions, because a modified client can alter any request field.
+
+#### Mock and proxy setup
+
+The DEBUG scheme needs no configuration and uses deterministic local insights after a short simulated delay. No provider or GitHub request is made during generation.
+
+For a Release build, set `RepositoryInsightsProxyURL` in `Info.plist` to the HTTPS endpoint operated by your backend. Leaving it empty is safe: generation produces the inline retryable unavailable state. The endpoint URL is configuration, not a secret; provider credentials must remain on the backend.
+
+The client expects `POST` with `Content-Type: application/json`:
+
+```json
+{
+  "schemaVersion": 1,
+  "locale": "en",
+  "repositoryContentIsUntrusted": true,
+  "instructions": ["Safety and output requirements supplied by the client"],
+  "context": {
+    "repositoryName": "GithubSearch",
+    "fullName": "owner/GithubSearch",
+    "description": "An iOS repository search application",
+    "primaryLanguage": "Swift",
+    "topics": ["ios", "rxswift"],
+    "starCount": 42,
+    "licenseName": "MIT License",
+    "readmeExcerpt": "A bounded README preview",
+    "latestRelease": {
+      "name": "Version 1.0",
+      "tagName": "v1.0",
+      "publishedAt": "2026-04-05T10:00:00Z",
+      "notesExcerpt": "Initial release"
+    }
+  }
+}
+```
+
+The backend must return status `2xx`, `Content-Type: application/json`, and this exact top-level schema:
+
+```json
+{
+  "overview": "A short evidence-based explanation.",
+  "usefulFor": ["A concrete audience or use case."],
+  "nextSteps": ["First action.", "Second action.", "Third action."],
+  "questionsToExplore": ["A relevant question?"]
+}
+```
+
+All strings must be non-empty, `usefulFor` and `questionsToExplore` must contain at least one item, and `nextSteps` must contain exactly three items. Missing fields, malformed JSON, empty values, or the wrong next-step count are rejected as controlled service errors.
+
+#### AI Insights screenshots
+
+Screenshot placeholders for a future real-backend demo:
+
+- Idle card with Generate AI Insights
+- Inline generating state
+- Loaded four-section analysis
+- Inline retry and insufficient-data states
+
+#### Current limitations
+
+- There is no chat, streaming, history, persistence, authentication, or on-device model.
+- The first version analyzes only metadata and excerpts already available to the details flow; it does not inspect the full codebase or make extra GitHub requests.
+- DEBUG output is intentionally deterministic and demonstrates UX/state behavior, not model quality.
+- A production Release build requires an independently deployed HTTPS proxy.
+
 ### Image loading
 
 Image loading is implemented as a dedicated service with two practical optimizations:
@@ -135,6 +220,7 @@ The tests focus on behavior that is easy to regress:
 - mapping API and connectivity errors
 - image caching, cancellation, MIME validation, and request deduplication
 - loading, caching, refresh, formatting, and fallback behavior for repository insights
+- AI Insights idle/loading/success/failure/retry, duplicate-tap suppression, cancellation, repository isolation, request encoding, strict response validation, and error mapping
 - avatar loading and cell-reuse safety
 
 UI tests cover the successful search-to-details flow, the empty search state, launch behavior, and launch performance using deterministic service fixtures.

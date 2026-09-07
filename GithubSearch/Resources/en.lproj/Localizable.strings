@@ -51,6 +51,31 @@
 "repo.details.avatar.accessibility.fallback" = "Repository owner avatar";
 "repo.details.avatar.accessibility.label" = "Avatar for %@";
 
+"repo.insights.section.title" = "AI Repository Insights";
+"repo.insights.explanation" = "Turn the available repository details into a concise overview, suggested next steps, and questions worth investigating.";
+"repo.insights.button.generate" = "Generate AI Insights";
+"repo.insights.button.generating" = "Generating Insights…";
+"repo.insights.button.regenerate" = "Regenerate Insights";
+"repo.insights.button.retry" = "Retry";
+"repo.insights.button.hint" = "Generates an analysis from the repository information shown on this screen.";
+"repo.insights.loading" = "Generating an analysis…";
+"repo.insights.error" = "Insights couldn't be generated right now. You can retry without leaving this screen.";
+"repo.insights.insufficient_data" = "There isn't enough repository information for a reliable analysis. A description, language, topics, README, or release would help.";
+"repo.insights.overview.title" = "Overview";
+"repo.insights.useful_for.title" = "Useful For";
+"repo.insights.next_steps.title" = "Suggested Next Steps";
+"repo.insights.questions.title" = "Questions to Explore";
+"repo.insights.debug.language.unknown" = "an unspecified language";
+"repo.insights.debug.overview" = "%@ appears to be a project centered on %@. This DEBUG analysis is generated locally from the repository details available in the app.";
+"repo.insights.debug.useful_for.one" = "Developers evaluating whether the repository fits their needs.";
+"repo.insights.debug.useful_for.two" = "Contributors looking for a focused place to begin exploring.";
+"repo.insights.debug.next_step.code" = "Inspect the main %@ code paths and identify the project's entry point.";
+"repo.insights.debug.next_step.run" = "Read the setup instructions and try the project locally in an isolated environment.";
+"repo.insights.debug.next_step.documentation" = "Review the README and repository documentation for setup details and current limitations.";
+"repo.insights.debug.next_step.release" = "Review release %@ and its notes before adopting or upgrading the project.";
+"repo.insights.debug.question.one" = "Which use cases are explicitly supported by the documentation?";
+"repo.insights.debug.question.two" = "Are open issues or contribution guidelines available for a useful first contribution?";
+
 "github.error.invalid_username" = "Enter a valid username.";
 "github.error.user_not_found" = "We couldn't find that user.";
 "github.error.connectivity" = "You're offline right now. Check your internet connection and try again.";

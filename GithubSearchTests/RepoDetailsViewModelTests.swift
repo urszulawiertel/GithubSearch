@@ -408,12 +408,17 @@ final class RepoDetailsViewModelTests: XCTestCase {
     private func makeInput(
         openOnGitHubTapped: Signal<Void> = .empty(),
         loadDetails: Signal<Bool> = .just(false),
-        topicSelected: Signal<String> = .empty()
+        topicSelected: Signal<String> = .empty(),
+        generateInsightsTapped: Signal<Void> = .empty(),
+        viewClosed: Signal<Void> = .empty()
     ) -> RepoDetailsViewModel.Input {
         RepoDetailsViewModel.Input(
             openOnGitHubTapped: openOnGitHubTapped,
             loadDetails: loadDetails,
-            topicSelected: topicSelected
+            topicSelected: topicSelected,
+            generateInsightsTapped: generateInsightsTapped,
+            viewClosed: viewClosed
         )
     }
+
 }

@@ -82,7 +82,7 @@ final class GithubSearchUITests: XCTestCase {
 
         let emptyStateLabel = app.staticTexts[AccessibilityID.emptyStateLabel]
         XCTAssertTrue(emptyStateLabel.waitForExistence(timeout: 5))
-        XCTAssertEqual(emptyStateLabel.label, "No public repositories found.")
+        XCTAssertEqual(emptyStateLabel.label, "No public repositories found")
 
         XCTAssertFalse(app.cells[AccessibilityID.firstResultCell].exists)
     }

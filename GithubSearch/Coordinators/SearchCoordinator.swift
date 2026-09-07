@@ -13,9 +13,21 @@ final class SearchCoordinator: NavigationCoordinator {
 
     private var childCoordinators: [Coordinator] = []
     private let disposeBag = DisposeBag()
+    private let githubService: GitHubServiceType
+    private let repositoryInsightsService: RepositoryInsightsServicing
+
+    init(
+        navigationController: UINavigationController,
+        githubService: GitHubServiceType = AppLaunchEnvironment.makeGitHubService(),
+        repositoryInsightsService: RepositoryInsightsServicing = AppLaunchEnvironment.makeRepositoryInsightsService()
+    ) {
+        self.githubService = githubService
+        self.repositoryInsightsService = repositoryInsightsService
+        super.init(navigationController: navigationController)
+    }
 
     override func start() {
-        let viewModel = SearchViewModel(service: AppLaunchEnvironment.makeGitHubService())
+        let viewModel = SearchViewModel(service: githubService)
         let viewController = SearchViewController(viewModel: viewModel)
 
         viewController.onRepoSelected
@@ -40,7 +52,9 @@ final class SearchCoordinator: NavigationCoordinator {
     private func showRepoDetails(repo: Repo) {
         let coordinator = RepoDetailsCoordinator(
             navigationController: navigationController,
-            repo: repo
+            repo: repo,
+            githubService: githubService,
+            repositoryInsightsService: repositoryInsightsService
         )
         coordinator.onFinish = { [weak self, weak coordinator] in
             guard let self, let coordinator else { return }

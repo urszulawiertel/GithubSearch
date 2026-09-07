@@ -12,6 +12,7 @@ enum AppLaunchEnvironment {
 
     private enum Key {
         static let uiTestScenario = "UI_TEST_SCENARIO"
+        static let repositoryInsightsProxyURL = "RepositoryInsightsProxyURL"
     }
 
     static func makeGitHubService() -> GitHubServiceType {
@@ -20,6 +21,19 @@ enum AppLaunchEnvironment {
         }
 
         return makeDebuggableService(wrapping: UITestGitHubService(scenario: scenario))
+    }
+
+    static func makeRepositoryInsightsService(bundle: Bundle = .main) -> RepositoryInsightsServicing {
+        #if DEBUG
+        return DebugRepositoryInsightsService()
+        #else
+        guard let endpointValue = bundle.object(forInfoDictionaryKey: Key.repositoryInsightsProxyURL) as? String,
+              let endpoint = URL(string: endpointValue.trimmingCharacters(in: .whitespacesAndNewlines)),
+              !endpointValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return UnavailableRepositoryInsightsService()
+        }
+        return RepositoryInsightsProxyService(endpoint: endpoint)
+        #endif
     }
 
     private static func makeDefaultGitHubService() -> GitHubServiceType {

@@ -21,6 +21,7 @@ final class RepoDetailsView: UIView {
     let refreshControl = UIRefreshControl()
     let avatarImageView = UIImageView()
     let openOnGitHubButton = UIButton(type: .system)
+    let repositoryInsightsView = RepositoryInsightsView()
 
     var onTopicSelected: ((String) -> Void)? {
         didSet {
@@ -113,6 +114,7 @@ final class RepoDetailsView: UIView {
         languagesView.render(state.languagesSection)
         readmePreviewView.render(state.readmeSection)
         releaseView.render(state.releaseSection)
+        repositoryInsightsView.render(state.insightsSection)
 
         openOnGitHubButton.configuration?.title = state.openButtonTitle
     }
@@ -159,6 +161,7 @@ private extension RepoDetailsView {
         contentStackView.addArrangedSubview(languagesView)
         contentStackView.addArrangedSubview(readmePreviewView)
         contentStackView.addArrangedSubview(releaseView)
+        contentStackView.addArrangedSubview(repositoryInsightsView)
         contentStackView.addArrangedSubview(openOnGitHubButton)
     }
 
